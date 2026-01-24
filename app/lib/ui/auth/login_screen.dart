@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/api_client.dart'; // Confirme se este caminho está certo no seu projeto
+import '../../core/api_client.dart';
 import '../dashboard/dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -10,9 +10,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  // --- O SEGREDO ESTÁ AQUI ---
-  // Criamos os controladores APENAS UMA VEZ, aqui em cima.
-  // Se eles estivessem dentro do "build", o erro aconteceria.
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -21,15 +18,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    // Limpamos a memória quando a tela fecha
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _login() async {
-    // Fecha o teclado para não atrapalhar
-    FocusScope.of(context).unfocus();
+    FocusScope.of(context).unfocus(); 
 
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -42,8 +37,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final apiClient = ApiClient();
-      
-      // Enviamos os dados para o PHP
       final response = await apiClient.post(
         'auth_login.php', 
         data: {
@@ -54,8 +47,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.statusCode == 200 && response.data['status'] == 'success') {
         if (!mounted) return;
-        
-        // Sucesso! Vai para o Dashboard
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const DashboardScreen()),
@@ -79,85 +70,163 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFFFF5F5), 
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        // Botão de voltar simples
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView( // Adicionado para evitar erro de pixel overflow no teclado
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 20),
-              const Text(
-                "Entra na tua conta",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 40),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight - 60),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 20),
+                    const Text(
+                      "Entra na tua conta",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 24, 
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87
+                      ),
+                    ),
+                    const SizedBox(height: 50),
 
-              // CAMPO EMAIL
-              const Text("Email", style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _emailController, 
-                keyboardType: TextInputType.emailAddress,
-                decoration: InputDecoration(
-                  hintText: "exemplo@victus.pt",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // CAMPO SENHA
-              const Text("Palavra-passe", style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _passwordController,
-                obscureText: _isObscure,
-                decoration: InputDecoration(
-                  hintText: "*********",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  suffixIcon: IconButton(
-                    icon: Icon(_isObscure ? Icons.visibility_off : Icons.visibility),
-                    onPressed: () => setState(() => _isObscure = !_isObscure),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 30),
-
-              // BOTÃO ENTRAR
-              SizedBox(
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _login,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEBC0C0), // Rosa Victus
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    elevation: 0,
-                  ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20, 
-                          width: 20, 
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                        )
-                      : const Text(
-                          "Entrar", 
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)
+                    const Text("Email", style: TextStyle(fontSize: 16, color: Colors.black87)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        hintText: "exemploemail@gmail.com",
+                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.all(18),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
                         ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFCB8B8B)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    const Text("Palavra-passe", style: TextStyle(fontSize: 16, color: Colors.black87)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: _isObscure,
+                      decoration: InputDecoration(
+                        hintText: "Inserir palavra-passe",
+                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        filled: true,
+                        fillColor: Colors.white,
+                        contentPadding: const EdgeInsets.all(18),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFCB8B8B)),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _isObscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                            color: Colors.grey,
+                          ),
+                          onPressed: () => setState(() => _isObscure = !_isObscure),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+
+                    SizedBox(
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: _isLoading ? null : _login,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE6B7B7),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: _isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text(
+                                "Entrar",
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 20),
+
+                    Center(
+                      child: RichText(
+                        text: TextSpan(
+                          text: "Esqueceste-te da palavra-passe? ",
+                          style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                          children: const [
+                            TextSpan(
+                              text: "Recuperar",
+                              style: TextStyle(
+                                color: Color(0xFFCB8B8B),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 40), 
+
+                    Column(
+                      children: [
+                        Text(
+                          "Ao utilizares a Victus, aceitas os nossos",
+                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        ),
+                        const SizedBox(height: 4),
+                        RichText(
+                          text: const TextSpan(
+                            text: "Termos",
+                            style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12),
+                            children: [
+                              TextSpan(text: " e ", style: TextStyle(fontWeight: FontWeight.normal)),
+                              TextSpan(text: "Política de Privacidade", style: TextStyle(fontWeight: FontWeight.bold)),
+                              TextSpan(text: ".", style: TextStyle(fontWeight: FontWeight.normal)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
-            ],
-          ),
+            );
+          }
         ),
       ),
     );

@@ -12,13 +12,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false, // Remove a faixa vermelha "Debug"
+      debugShowCheckedModeBanner: false, 
       title: 'Victus App',
       theme: ThemeData(
-        // Configura a cor base para o Rosa Victus
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFE5C0BE)),
         useMaterial3: true,
-        // Garante que o fundo do app seja branco
         scaffoldBackgroundColor: Colors.white,
       ),
       home: const LoginScreen(),

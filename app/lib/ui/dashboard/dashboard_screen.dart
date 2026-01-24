@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/models/dashboard_model.dart';
 import '../../data/repositories/dashboard_repository.dart';
+import '../library/library_screen.dart'; 
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -46,7 +47,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. HEADER (Olá, Nome + Ícones)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -70,7 +70,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               const SizedBox(height: 20),
 
-              // 2. BANNER (Primeiro da lista)
               if (_data!.banners.isNotEmpty)
                 Container(
                   width: double.infinity,
@@ -118,7 +117,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               const SizedBox(height: 20),
 
-              // 3. LEMBRETE DO DIA (Card Rosa)
               if (_data!.reminder != null)
                 Container(
                   width: double.infinity,
@@ -148,11 +146,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               const SizedBox(height: 20),
 
-              // 4. LINHA INFERIOR (Peso + Eventos)
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Lado Esquerdo: Peso (Gráfico Circular)
                   Expanded(
                     flex: 4,
                     child: Container(
@@ -168,9 +164,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             width: 100,
                             height: 100,
                             child: CircularProgressIndicator(
-                              value: 0.7, // 70% fixo só para visual
+                              value: 0.7, 
                               strokeWidth: 8,
-                              color: Color(0xFFD4AF37), // Dourado
+                              color: Color(0xFFD4AF37), 
                               backgroundColor: Colors.white,
                             ),
                           ),
@@ -193,7 +189,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(width: 15),
 
-                  // Lado Direito: Eventos
                   Expanded(
                     flex: 5,
                     child: Container(
@@ -210,7 +205,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             style: TextStyle(fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 10),
-                          // Lista Dinâmica de Eventos
                           ..._data!.events.map((event) => Container(
                             margin: const EdgeInsets.only(bottom: 8),
                             padding: const EdgeInsets.all(8),
@@ -258,12 +252,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
       ),
-      // BARRA DE NAVEGAÇÃO INFERIOR
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: const Color(0xFFCB8B8B),
         unselectedItemColor: Colors.grey[400],
         showUnselectedLabels: true,
+        onTap: (index) {
+          if (index == 3) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const LibraryScreen()),
+            );
+          }
+        },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.restaurant_menu), label: 'Plano'),

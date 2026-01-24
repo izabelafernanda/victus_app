@@ -17,7 +17,7 @@ class DashboardData {
       banners: (json['banners'] as List).map((i) => BannerItem.fromJson(i)).toList(),
       reminder: json['reminder'] != null ? ReminderItem.fromJson(json['reminder']) : null,
       events: (json['events'] as List).map((i) => EventItem.fromJson(i)).toList(),
-    );
+    );  
   }
 }
 
