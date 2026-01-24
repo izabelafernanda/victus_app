@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/models/library_model.dart';
 import '../../data/repositories/library_repository.dart';
+import '../player/player_screen.dart'; // <--- IMPORTANTE: Import para o Player funcionar
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -84,86 +85,98 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Widget _buildLibraryCard(LibraryItem item) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white, // Fundo branco
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Row(
-        children: [
-          // 1. IMAGEM (Quadrada à esquerda)
-          ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(16),
-              bottomLeft: Radius.circular(16),
-            ),
-            child: Image.network(
-              item.imageUrl,
-              width: 100,
-              height: 100,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                width: 100, height: 100, color: Colors.grey[300], 
-                child: const Icon(Icons.image_not_supported)
+    // --- ALTERAÇÃO AQUI: Envolvemos o Container num GestureDetector ---
+    return GestureDetector(
+      onTap: () {
+        // Navega para a tela do Player enviando o ID do curso
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PlayerScreen(courseId: item.id),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white, // Fundo branco
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            // 1. IMAGEM (Quadrada à esquerda)
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                bottomLeft: Radius.circular(16),
+              ),
+              child: Image.network(
+                item.imageUrl,
+                width: 100,
+                height: 100,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 100, height: 100, color: Colors.grey[300], 
+                  child: const Icon(Icons.image_not_supported)
+                ),
               ),
             ),
-          ),
-          
-          // 2. TEXTOS (Título e Descrição)
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    item.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  
-                  // Se tiver progresso > 0, mostra barra. Se não, mostra descrição
-                  if (item.progress > 0) ...[
-                    const SizedBox(height: 8),
-                    LinearProgressIndicator(
-                      value: item.progress / 100,
-                      backgroundColor: const Color(0xFFF0F0F0),
-                      color: const Color(0xFFCB8B8B), // Rosa Victus
-                      minHeight: 6,
-                      borderRadius: BorderRadius.circular(3),
+            
+            // 2. TEXTOS (Título e Descrição)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      item.title,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      "${item.progress}%",
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
-                      textAlign: TextAlign.right,
-                    )
-                  ] else
-                    Text(
-                      item.description,
-                      style: const TextStyle(
-                        fontSize: 12, 
-                        color: Colors.grey
+                    
+                    // Se tiver progresso > 0, mostra barra. Se não, mostra descrição
+                    if (item.progress > 0) ...[
+                      const SizedBox(height: 8),
+                      LinearProgressIndicator(
+                        value: item.progress / 100,
+                        backgroundColor: const Color(0xFFF0F0F0),
+                        color: const Color(0xFFCB8B8B), // Rosa Victus
+                        minHeight: 6,
+                        borderRadius: BorderRadius.circular(3),
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
+                      const SizedBox(height: 4),
+                      Text(
+                        "${item.progress}%",
+                        style: const TextStyle(fontSize: 12, color: Colors.grey),
+                        textAlign: TextAlign.right,
+                      )
+                    ] else
+                      Text(
+                        item.description,
+                        style: const TextStyle(
+                          fontSize: 12, 
+                          color: Colors.grey
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
