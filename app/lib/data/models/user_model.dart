@@ -9,13 +9,11 @@ class UserModel {
   final String name;
   final String email;
   
-  // O PHP manda 'avatar_url', mas no Flutter usamos camelCase (avatarUrl)
   @JsonKey(name: 'avatar_url') 
   final String? avatarUrl;
   
-  // O PHP manda 'weight_lost', mapeamos aqui
   @JsonKey(name: 'weight_lost')
-  final dynamic weightLost; // Dynamic porque pode vir como número ou texto do banco
+  final dynamic weightLost; 
 
   UserModel({
     required this.id,
@@ -25,7 +23,6 @@ class UserModel {
     this.weightLost,
   });
 
-  // Estas funções serão criadas automaticamente no passo seguinte
   factory UserModel.fromJson(Map<String, dynamic> json) => _$UserModelFromJson(json);
   Map<String, dynamic> toJson() => _$UserModelToJson(this);
 }
