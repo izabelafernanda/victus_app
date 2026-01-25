@@ -4,6 +4,7 @@ class ApiClient {
   static const String baseUrl = 'http://localhost/victus_app/api/';
   
   static String? authToken;
+  static String? userName;
 
   final Dio dio;
 

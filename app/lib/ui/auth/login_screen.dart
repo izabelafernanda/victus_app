@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../dashboard/dashboard_screen.dart';
 import 'forgot_password_screen.dart'; 
+import 'register_screen.dart';
+import 'package:dio/dio.dart'; 
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -113,7 +115,10 @@ class _LoginScreenState extends State<LoginScreen> {
           final token = data['token'];
           if (token != null) {
             ApiClient.authToken = token;
-            print("💾 Token salvo: $token");
+          }
+          if (data['user'] != null && data['user']['name'] != null) {
+            ApiClient.userName = data['user']['name'];
+            print("👤 Utilizador: ${ApiClient.userName}");
           }
 
           if (!mounted) return;
@@ -124,16 +129,32 @@ class _LoginScreenState extends State<LoginScreen> {
         } else {
           throw Exception(data['message'] ?? 'Erro de login');
         }
-      } else {
-         throw Exception('Erro no servidor: ${response.statusCode}');
+      } 
+    } on DioException catch (e) {
+      String message = "Erro de conexão.";
+      
+      if (e.response != null) {
+        if (e.response?.statusCode == 401) {
+          message = "Email ou palavra-passe incorretos.";
+        } else if (e.response?.statusCode == 404) {
+           message = "Conta não encontrada.";
+        } else {
+          message = e.response?.data['message'] ?? "Erro no servidor.";
+        }
       }
-    } catch (e) {
+
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Erro: ${e.toString().replaceAll('Exception:', '')}"),
-          backgroundColor: Colors.red,
+          content: Text(message),
+          backgroundColor: Colors.red, 
+          behavior: SnackBarBehavior.floating,
         ),
+      );
+    } catch (e) {
+       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Ocorreu um erro inesperado."), backgroundColor: Colors.red),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -238,6 +259,28 @@ class _LoginScreenState extends State<LoginScreen> {
                                     style: TextStyle(color: Colors.grey[600], fontSize: 13),
                                     children: const [
                                       TextSpan(text: "Recuperar", style: TextStyle(color: Color(0xFFCB8B8B), fontWeight: FontWeight.bold)),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          Center(
+                            child: MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                onTap: () {
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen()));
+                                },
+                                child: RichText(
+                                  text: TextSpan(
+                                    text: "Ainda não tens conta? ",
+                                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                                    children: const [
+                                      TextSpan(text: "Criar nova conta", style: TextStyle(color: Color(0xFFCB8B8B), fontWeight: FontWeight.bold)),
                                     ],
                                   ),
                                 ),
