@@ -97,7 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final apiClient = ApiClient();
-      final response = await apiClient.post(
+      final response = await apiClient.dio.post( 
         'auth_login.php', 
         data: {
           "email": _emailController.text.trim(),
@@ -105,14 +105,27 @@ class _LoginScreenState extends State<LoginScreen> {
         },
       );
 
-      if (response.statusCode == 200 && response.data['status'] == 'success') {
-        if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
-        );
+      if (response.statusCode == 200) {
+        final data = response.data;
+
+        if (data['status'] == 'success') {
+          
+          final token = data['token'];
+          if (token != null) {
+            ApiClient.authToken = token;
+            print("💾 Token salvo: $token");
+          }
+
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          );
+        } else {
+          throw Exception(data['message'] ?? 'Erro de login');
+        }
       } else {
-        throw Exception(response.data['message'] ?? 'Erro de login');
+         throw Exception('Erro no servidor: ${response.statusCode}');
       }
     } catch (e) {
       if (!mounted) return;

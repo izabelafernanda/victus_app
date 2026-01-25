@@ -1,37 +1,27 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-final apiClientProvider = Provider((ref) => ApiClient());
 
 class ApiClient {
-  final Dio _dio = Dio();
+  static const String baseUrl = 'http://localhost/victus_app/api/';
+  
+  static String? authToken;
 
-  Dio get dio => _dio; 
-  // -------------------------------
+  final Dio dio;
 
-  ApiClient() {
-    _dio.options.baseUrl = 'http://127.0.0.1/victus_app/api/';
-    _dio.options.connectTimeout = const Duration(seconds: 10);
-    _dio.options.receiveTimeout = const Duration(seconds: 10);
-    _dio.interceptors.add(LogInterceptor(
-      requestBody: true,
-      responseBody: true,
+  ApiClient() : dio = Dio(BaseOptions(baseUrl: baseUrl)) {
+    dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        
+        if (authToken != null) {
+          options.headers['Authorization'] = 'Bearer $authToken';
+          print("🔑 Token enviado: $authToken");
+        }
+        
+        return handler.next(options);
+      },
+      onError: (DioException e, handler) {
+        print("❌ Erro na API: ${e.response?.statusCode} - ${e.message}");
+        return handler.next(e);
+      },
     ));
-  }
-
-  Future<Response> post(String path, {dynamic data}) async {
-    try {
-      return await _dio.post(path, data: data);
-    } on DioException catch (e) {
-      throw Exception(e.message);
-    }
-  }
-
-  Future<Response> get(String path) async {
-    try {
-      return await _dio.get(path);
-    } on DioException catch (e) {
-      throw Exception(e.message);
-    }
   }
 }
