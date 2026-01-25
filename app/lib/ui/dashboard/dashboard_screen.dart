@@ -1,7 +1,24 @@
 import 'package:flutter/material.dart';
-import '../../data/models/dashboard_model.dart';
-import '../../data/repositories/dashboard_repository.dart';
-import '../library/library_screen.dart'; 
+import '../../core/api_client.dart';
+import '../library/library_screen.dart';
+
+// --- TELAS TEMPORÁRIAS ---
+class PlaceholderScreen extends StatelessWidget {
+  final String title;
+  const PlaceholderScreen({super.key, required this.title});
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(title, style: const TextStyle(color: Colors.black)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.black),
+      ),
+      body: Center(child: Text("Tela de $title em construção 🚧")),
+    );
+  }
+}
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -11,39 +28,110 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final DashboardRepository _repository = DashboardRepository();
-  DashboardData? _data;
   bool _isLoading = true;
+  Map<String, dynamic>? _data;
+  int _selectedIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _fetchDashboardData();
   }
 
-  Future<void> _loadData() async {
-    final data = await _repository.getDashboardData();
-    setState(() {
-      _data = data;
-      _isLoading = false;
-    });
+  Future<void> _fetchDashboardData() async {
+    try {
+      final apiClient = ApiClient();
+      final response = await apiClient.dio.get('get_dashboard.php');
+      
+      if (mounted) {
+        setState(() {
+          _data = response.data;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Erro Dashboard: $e");
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showAddOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          height: 250,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("O que queres registar?", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(Icons.local_drink, color: Colors.blue),
+                title: const Text("Água"),
+                onTap: () => Navigator.pop(context),
+              ),
+              ListTile(
+                leading: const Icon(Icons.restaurant, color: Colors.orange),
+                title: const Text("Refeição"),
+                onTap: () => Navigator.pop(context),
+              ),
+              ListTile(
+                leading: const Icon(Icons.monitor_weight, color: Colors.purple),
+                title: const Text("Peso"),
+                onTap: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
+    
+    switch (index) {
+      case 0: break; 
+      case 1:
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const PlaceholderScreen(title: "Plano Alimentar")));
+        break;
+      case 2:
+        _showAddOptions(); 
+        setState(() => _selectedIndex = 0);
+        break;
+      case 3:
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const LibraryScreen()));
+        break;
+      case 4:
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const PlaceholderScreen(title: "Meu Perfil")));
+        break;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFFCB8B8B))));
     }
 
-    if (_data == null) {
-      return const Scaffold(body: Center(child: Text("Erro ao carregar dados.")));
-    }
+    final userName = _data?['user_name'] ?? 'Usuário';
+    final dailyTip = _data?['daily_tip'] ?? 'Carregando...';
+    final weightLost = _data?['weight_lost'] ?? 0;
+    final List events = _data?['next_events'] ?? [];
+    
+    final bool hasNotif = _data?['has_notifications'] ?? false;
+    final bool hasMsg = _data?['has_messages'] ?? false;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFFDFDFD),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -51,99 +139,90 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "Olá, ${_data!.user.name}",
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    "Olá, $userName",
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.groups, color: Colors.black87),
-                      SizedBox(width: 15),
-                      Icon(Icons.notifications, color: Colors.black87),
-                      SizedBox(width: 15),
-                      Icon(Icons.chat_bubble_outline, color: Colors.black87),
+                      _buildTopIcon(Icons.groups, false, () {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Comunidade em breve!")));
+                      }),
+                      _buildTopIcon(Icons.notifications, hasNotif, () {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Minhas Notificações")));
+                      }),
+                      _buildTopIcon(Icons.comment, hasMsg, () {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mensagens da Nutri")));
+                      }),
                     ],
                   )
                 ],
               ),
               const SizedBox(height: 20),
 
-              if (_data!.banners.isNotEmpty)
-                Container(
-                  width: double.infinity,
-                  height: 160,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    image: DecorationImage(
-                      image: NetworkImage(_data!.banners[0].imageUrl),
-                      fit: BoxFit.cover,
-                      colorFilter: ColorFilter.mode(
-                        Colors.black.withOpacity(0.3), 
-                        BlendMode.darken
+              Container(
+                width: double.infinity, height: 180,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAF4F4), 
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Stack(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(left: 20, top: 30, right: 140),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("Bem-vinda à minha App!", style: TextStyle(color: Colors.black87, fontSize: 20, fontWeight: FontWeight.bold, height: 1.2)),
+                          const SizedBox(height: 8),
+                          const Text(
+                            "Clica aqui para iniciares a tua jornada",
+                            style: TextStyle(color: Colors.black, fontSize: 13),
+                          ),
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LibraryScreen())),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                            child: const Text("Começa aqui", style: TextStyle(fontSize: 12)),
+                          )
+                        ],
                       ),
                     ),
-                  ),
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _data!.banners[0].title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                    Positioned(
+                      right: 0, bottom: 0, 
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.only(bottomRight: Radius.circular(20)),
+                        child: Image.asset(
+                          'assets/header_woman.png',
+                          height: 180,
+                          fit: BoxFit.fitHeight, 
+                          alignment: Alignment.bottomRight, 
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _data!.banners[0].subtitle,
-                        style: const TextStyle(color: Colors.white70, fontSize: 14),
-                      ),
-                      const SizedBox(height: 15),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        color: Colors.black87,
-                        child: const Text(
-                          "Começa aqui",
-                          style: TextStyle(color: Colors.white, fontSize: 12),
-                        ),
-                      )
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
+              ),
               const SizedBox(height: 20),
 
-              if (_data!.reminder != null)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFEBC0C0), Color(0xFFE8D4D4)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(20),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFE6B7B7), Color(0xFFF8E8E8)],
                   ),
-                  child: Column(
-                    children: [
-                      Text(
-                        _data!.reminder!.title,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        _data!.reminder!.message,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 14, height: 1.4),
-                      ),
-                    ],
-                  ),
+                  borderRadius: BorderRadius.circular(20),
                 ),
+                child: Column(
+                  children: [
+                    const Text("LEMBRETE DO DIA:", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                    const SizedBox(height: 8),
+                    Text(dailyTip, textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                  ],
+                ),
+              ),
               const SizedBox(height: 20),
 
               Row(
@@ -152,133 +231,127 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Expanded(
                     flex: 4,
                     child: Container(
-                      height: 140,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF9F0F0),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Stack(
-                        alignment: Alignment.center,
+                      height: 160,
+                      decoration: BoxDecoration(color: const Color(0xFFF8F0F0), borderRadius: BorderRadius.circular(20)),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const SizedBox(
-                            width: 100,
-                            height: 100,
-                            child: CircularProgressIndicator(
-                              value: 0.7, 
-                              strokeWidth: 8,
-                              color: Color(0xFFD4AF37), 
-                              backgroundColor: Colors.white,
-                            ),
-                          ),
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          Stack(
+                            alignment: Alignment.center,
                             children: [
-                              Text(
-                                "${_data!.user.weightLost.toStringAsFixed(0)}kg",
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 18,
-                                ),
+                              SizedBox(
+                                width: 100, height: 100,
+                                child: CircularProgressIndicator(value: 0.7, strokeWidth: 8, backgroundColor: Colors.grey[300], color: const Color(0xFFD4AF37)),
                               ),
-                              const Text("perdidos", style: TextStyle(fontSize: 12)),
+                              Column(
+                                children: [
+                                  Text("${weightLost}kg", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                                  const Text("perdidos", style: TextStyle(fontSize: 12)),
+                                ],
+                              )
                             ],
                           )
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 15),
-
+                  const SizedBox(width: 16),
                   Expanded(
-                    flex: 5,
+                    flex: 6,
                     child: Container(
-                      padding: const EdgeInsets.all(15),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF9F0F0),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(color: const Color(0xFFF8F0F0), borderRadius: BorderRadius.circular(20)),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            "Próximos eventos:",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
+                          const Text("Próximos eventos:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                           const SizedBox(height: 10),
-                          ..._data!.events.map((event) => Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Row(
-                              children: [
-                                Text(
-                                  event.dateFormatted,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
+                          ...events.map((evt) {
+                            final title = evt['title'].toString();
+                            final isSpecialItem = title.startsWith('+');
+                            
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
+                              child: !isSpecialItem 
+                                ? Row( 
+                                    children: [
+                                      Text(evt['date_label'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                      const SizedBox(width: 8),
+                                      Container(width: 1, height: 12, color: Colors.grey),
+                                      const SizedBox(width: 8),
+                                      Expanded(child: Text(evt['type'] ?? title, style: const TextStyle(fontSize: 12), overflow: TextOverflow.ellipsis)),
+                                    ],
+                                  )
+                                : Row( 
+                                    children: [
+                                       Expanded(child: Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+                                    ],
                                   ),
-                                ),
-                                Container(
-                                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                                  width: 1,
-                                  height: 15,
-                                  color: Colors.black26,
-                                ),
-                                Expanded(
-                                  child: Text(
-                                    event.title,
-                                    style: const TextStyle(fontSize: 12),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )),
-                          if (_data!.events.isNotEmpty)
-                            const Text(
-                              "+ 1 evento", 
-                              style: TextStyle(fontSize: 10, color: Colors.grey),
-                            ),
+                            );
+                          }).toList(),
                         ],
                       ),
                     ),
                   ),
                 ],
-              )
+              ),
             ],
           ),
         ),
       ),
+      
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
+        currentIndex: _selectedIndex,
         selectedItemColor: const Color(0xFFCB8B8B),
         unselectedItemColor: Colors.grey[400],
-        showUnselectedLabels: true,
-        onTap: (index) {
-          if (index == 3) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const LibraryScreen()),
-            );
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.restaurant_menu), label: 'Plano'),
-          BottomNavigationBarItem(
-            icon: CircleAvatar(
-              backgroundColor: Color(0xFFCB8B8B),
-              child: Icon(Icons.add, color: Colors.white),
-            ),
+        onTap: _onItemTapped,
+        items: [
+          const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          const BottomNavigationBarItem(icon: Icon(Icons.restaurant_menu), label: 'Plano'),
+          const BottomNavigationBarItem(
+            icon: CircleAvatar(backgroundColor: Color(0xFFCB8B8B), radius: 22, child: Icon(Icons.add, color: Colors.white)),
             label: '',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.play_circle_outline), label: 'Biblioteca'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Perfil'),
+          const BottomNavigationBarItem(icon: Icon(Icons.play_circle_outline), label: 'Biblioteca'),
+          
+          BottomNavigationBarItem(
+            icon: Container(
+              width: 26, height: 26,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                image: DecorationImage(
+                  image: AssetImage('assets/profile.png'), 
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            label: 'Perfil',
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTopIcon(IconData icon, bool hasBadge, VoidCallback onTap) {
+    return Stack(
+      children: [
+        IconButton(icon: Icon(icon, color: Colors.black87), onPressed: onTap),
+        if (hasBadge)
+          Positioned(
+            right: 8, top: 8,
+            child: Container(
+              width: 10, height: 10,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFD700),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1.5),
+              ),
+            ),
+          )
+      ],
     );
   }
 }
