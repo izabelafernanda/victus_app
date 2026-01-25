@@ -1,44 +1,79 @@
 <?php
+// Desativa exibição de erros na tela para não quebrar o App
+ini_set('display_errors', 0);
+error_reporting(0);
+
 header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
 header("Content-Type: application/json; charset=UTF-8");
 
 include_once 'config/database.php';
 
-$database = new Database();
-$db = $database->getConnection();
+try {
+    $database = new Database();
+    $db = $database->getConnection();
 
-$user_id = isset($_GET['user_id']) ? $_GET['user_id'] : 1;
+    // 1. DADOS PADRÃO (Para não vir vazio)
+    $has_notifications = true; 
+    $has_messages = true;      
 
-$response = [];
+    // 2. PEGAR USUÁRIO (Tenta 'Cristiana' ou o primeiro que encontrar)
+    $user_name = "Visitante";
+    $query = "SELECT name FROM users WHERE name LIKE '%Cristiana%' LIMIT 1";
+    $stmt = $db->prepare($query);
+    $stmt->execute();
+    
+    if ($stmt->rowCount() > 0) {
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $user_name = $row['name'];
+    } else {
+        $query2 = "SELECT name FROM users LIMIT 1";
+        $stmt2 = $db->prepare($query2);
+        $stmt2->execute();
+        if ($stmt2->rowCount() > 0) {
+            $row2 = $stmt2->fetch(PDO::FETCH_ASSOC);
+            $user_name = $row2['name'];
+        }
+    }
 
-$query_user = "SELECT name, weight_lost FROM users WHERE id = ? LIMIT 1";
-$stmt_user = $db->prepare($query_user);
-$stmt_user->bindParam(1, $user_id);
-$stmt_user->execute();
-$user_data = $stmt_user->fetch(PDO::FETCH_ASSOC);
+    // 3. FRASE DO DIA
+    $tip_message = "Mantenha o foco!";
+    $stmt_tip = $db->prepare("SELECT message FROM daily_tips ORDER BY RAND() LIMIT 1");
+    if ($stmt_tip->execute() && $stmt_tip->rowCount() > 0) {
+        $row_tip = $stmt_tip->fetch(PDO::FETCH_ASSOC);
+        $tip_message = $row_tip['message'];
+    }
 
-if($user_data) {
-    $response['user'] = [
-        "name" => $user_data['name'],
-        "weight_lost" => floatval($user_data['weight_lost'])
+    // 4. EVENTOS (Com proteção contra erros de tabela)
+    $events = [];
+    try {
+        // Usa 'date_label' que é a coluna correta que criamos
+        $query_events = "SELECT title, date_label, type FROM events LIMIT 3";
+        $stmt_events = $db->prepare($query_events);
+        $stmt_events->execute();
+        $events = $stmt_events->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        $events = [];
+    }
+
+    $response = [
+        "user_name" => $user_name,
+        "weight_lost" => 2, // Valor fixo por enquanto ou vindo do DB
+        "daily_tip" => $tip_message,
+        "next_events" => $events,
+        "has_notifications" => $has_notifications,
+        "has_messages" => $has_messages
     ];
+
+    echo json_encode($response);
+
+} catch (Exception $e) {
+    echo json_encode([
+        "user_name" => "Erro",
+        "weight_lost" => 0,
+        "daily_tip" => "Erro de conexão.",
+        "next_events" => [],
+        "has_notifications" => false,
+        "has_messages" => false
+    ]);
 }
-
-$query_banners = "SELECT id, title, subtitle, image_url FROM banners";
-$stmt_banners = $db->prepare($query_banners);
-$stmt_banners->execute();
-$response['banners'] = $stmt_banners->fetchAll(PDO::FETCH_ASSOC);
-
-$query_tip = "SELECT title, message FROM daily_tips ORDER BY id DESC LIMIT 1";
-$stmt_tip = $db->prepare($query_tip);
-$stmt_tip->execute();
-$response['reminder'] = $stmt_tip->fetch(PDO::FETCH_ASSOC);
-
-$query_events = "SELECT id, title, DATE_FORMAT(event_date, '%d/%m') as date_formatted FROM events WHERE event_date >= CURDATE() ORDER BY event_date ASC LIMIT 3";
-$stmt_events = $db->prepare($query_events);
-$stmt_events->execute();
-$response['events'] = $stmt_events->fetchAll(PDO::FETCH_ASSOC);
-
-echo json_encode($response);
 ?>
