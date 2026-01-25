@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../library/library_screen.dart';
 
-// --- TELAS TEMPORÁRIAS ---
 class PlaceholderScreen extends StatelessWidget {
   final String title;
   const PlaceholderScreen({super.key, required this.title});
@@ -119,11 +118,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFFCB8B8B))));
     }
 
-    final userName = _data?['user_name'] ?? 'Usuário';
     final dailyTip = _data?['daily_tip'] ?? 'Carregando...';
     final weightLost = _data?['weight_lost'] ?? 0;
     final List events = _data?['next_events'] ?? [];
-    
     final bool hasNotif = _data?['has_notifications'] ?? false;
     final bool hasMsg = _data?['has_messages'] ?? false;
 
@@ -139,8 +136,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "Olá, $userName",
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    "Olá, ${ApiClient.userName ?? 'Visitante'}", 
+                    style: const TextStyle(
+                      fontSize: 24, 
+                      fontWeight: FontWeight.bold, 
+                      color: Colors.black87
+                    ),
                   ),
                   Row(
                     children: [
@@ -286,11 +287,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   )
                                 : Row( 
                                     children: [
-                                       Expanded(child: Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
+                                      Expanded(child: Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold))),
                                     ],
                                   ),
                             );
-                          }).toList(),
+                          }),
                         ],
                       ),
                     ),
