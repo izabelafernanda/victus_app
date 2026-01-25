@@ -1,0 +1,37 @@
+<?php
+class JWT_Helper {
+    private static $secret_key = 'SEGREDO_SUPER_SECRETO_VICTUS_APP'; 
+
+    public static function create($payload) {
+        $header = json_encode(['typ' => 'JWT', 'alg' => 'HS256']);
+        $base64UrlHeader = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
+
+        $payload['exp'] = time() + (60 * 60 * 24); 
+        $payload_json = json_encode($payload);
+        $base64UrlPayload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload_json));
+
+        $signature = hash_hmac('sha256', $base64UrlHeader . "." . $base64UrlPayload, self::$secret_key, true);
+        $base64UrlSignature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
+
+        return $base64UrlHeader . "." . $base64UrlPayload . "." . $base64UrlSignature;
+    }
+
+    public static function validate($token) {
+        $parts = explode('.', $token);
+        if (count($parts) != 3) return false;
+
+        $header = $parts[0];
+        $payload = $parts[1];
+        $signature_provided = $parts[2];
+
+        $signature_check = hash_hmac('sha256', $header . "." . $payload, self::$secret_key, true);
+        $base64UrlSignatureCheck = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature_check));
+
+        if ($base64UrlSignatureCheck === $signature_provided) {
+            $payload_decoded = base64_decode(str_replace(['-', '_'], ['+', '/'], $payload));
+            return json_decode($payload_decoded, true);
+        }
+        return false;
+    }
+}
+?>
