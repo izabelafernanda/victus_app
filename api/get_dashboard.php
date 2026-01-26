@@ -1,5 +1,4 @@
 <?php
-// Desativa exibição de erros na tela para não quebrar o App
 ini_set('display_errors', 0);
 error_reporting(0);
 
@@ -12,11 +11,9 @@ try {
     $database = new Database();
     $db = $database->getConnection();
 
-    // 1. DADOS PADRÃO (Para não vir vazio)
     $has_notifications = true; 
     $has_messages = true;      
 
-    // 2. PEGAR USUÁRIO (Tenta 'Cristiana' ou o primeiro que encontrar)
     $user_name = "Visitante";
     $query = "SELECT name FROM users WHERE name LIKE '%Cristiana%' LIMIT 1";
     $stmt = $db->prepare($query);
@@ -35,7 +32,6 @@ try {
         }
     }
 
-    // 3. FRASE DO DIA
     $tip_message = "Mantenha o foco!";
     $stmt_tip = $db->prepare("SELECT message FROM daily_tips ORDER BY RAND() LIMIT 1");
     if ($stmt_tip->execute() && $stmt_tip->rowCount() > 0) {
@@ -43,10 +39,8 @@ try {
         $tip_message = $row_tip['message'];
     }
 
-    // 4. EVENTOS (Com proteção contra erros de tabela)
     $events = [];
     try {
-        // Usa 'date_label' que é a coluna correta que criamos
         $query_events = "SELECT title, date_label, type FROM events LIMIT 3";
         $stmt_events = $db->prepare($query_events);
         $stmt_events->execute();
@@ -57,7 +51,7 @@ try {
 
     $response = [
         "user_name" => $user_name,
-        "weight_lost" => 2, // Valor fixo por enquanto ou vindo do DB
+        "weight_lost" => 2, 
         "daily_tip" => $tip_message,
         "next_events" => $events,
         "has_notifications" => $has_notifications,
