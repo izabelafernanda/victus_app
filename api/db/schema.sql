@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Tempo de geração: 25/01/2026 às 19:21
+-- Tempo de geração: 26/01/2026 às 20:20
 -- Versão do servidor: 10.4.32-MariaDB
 -- Versão do PHP: 8.2.12
 
@@ -225,7 +225,8 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `name`, `email`, `password`, `avatar_url`, `weight_lost`, `created_at`) VALUES
-(1, 'Cristiana', 'cristiana@victus.pt', '$2y$10$T6dYqIov0KE0jGYq0Pzd/.CAWgT.Ey83wCgLvl68wNTMMCBRBOQ3y', 'https://i.pravatar.cc/300', 2.00, '2026-01-22 15:00:33');
+(1, 'Cristiana', 'cristiana@victus.pt', '$2y$10$PjRrBkQvc5zDn2qz0bonKO3QUW6Cn1/YKe8HYq1wKBod/DJTlc94S', 'https://i.pravatar.cc/300', 2.00, '2026-01-22 15:00:33'),
+(3, 'Silvia', 'silvia@gmail.com', '$2y$10$OeulOO4/FcaR42f25.fOeu9pkB3iHGCb/I3JBLvkw/xj0IpIGNuUq', NULL, 0.00, '2026-01-26 20:17:49');
 
 --
 -- Índices para tabelas despejadas
@@ -344,7 +345,7 @@ ALTER TABLE `modules`
 -- AUTO_INCREMENT de tabela `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Restrições para tabelas despejadas
