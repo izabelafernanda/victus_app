@@ -4,6 +4,7 @@ import '../dashboard/dashboard_screen.dart';
 import 'forgot_password_screen.dart'; 
 import 'register_screen.dart';
 import 'package:dio/dio.dart'; 
+import 'dart:developer';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -118,9 +119,8 @@ class _LoginScreenState extends State<LoginScreen> {
           }
           if (data['user'] != null && data['user']['name'] != null) {
             ApiClient.userName = data['user']['name'];
-            print("👤 Utilizador: ${ApiClient.userName}");
-          }
-
+            log("👤 Utilizador: ${ApiClient.userName}", name: 'LoginScreen');
+}
           if (!mounted) return;
           Navigator.pushReplacement(
             context,

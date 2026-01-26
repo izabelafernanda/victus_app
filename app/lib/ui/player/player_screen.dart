@@ -1,7 +1,7 @@
+import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
-import 'package:dio/dio.dart';
 import '../../core/api_client.dart';
 
 class PlayerScreen extends StatefulWidget {
@@ -16,10 +16,10 @@ class PlayerScreen extends StatefulWidget {
 class _PlayerScreenState extends State<PlayerScreen> {
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
+  
   bool _isLoading = true;
   List<dynamic> _lessons = [];
   int _currentLessonIndex = 0;
-
   int _selectedTabIndex = 0; 
 
   bool _isRated = false;
@@ -32,43 +32,87 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _loadCourseContent();
   }
 
+  @override
+  void dispose() {
+    _chewieController?.dispose();
+    _videoPlayerController?.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadCourseContent() async {
     try {
       final apiClient = ApiClient();
       final response = await apiClient.dio.get('get_course_content.php?course_id=${widget.courseId}');
 
-      if (response.statusCode == 200 && (response.data as List).isNotEmpty) {
-        setState(() {
-          _lessons = response.data;
-        });
-        _initializePlayer(_lessons[0]['video_url']);
-      } else {
-        setState(() => _isLoading = false);
+      List<dynamic> lessonsData = [];
+      if (response.data is List) {
+        lessonsData = response.data;
+      } else if (response.data is Map && response.data['data'] is List) {
+        lessonsData = response.data['data'];
       }
-    } catch (e) {
-      print("Erro Player: $e");
-      setState(() => _isLoading = false);
+
+      if (response.statusCode == 200 && lessonsData.isNotEmpty) {
+        if (mounted) {
+          setState(() {
+            _lessons = lessonsData;
+          });
+          if (_lessons[0]['video_url'] != null) {
+            _initializePlayer(_lessons[0]['video_url']);
+          }
+        }
+      } else {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } catch (e, stackTrace) {
+      log("Erro Player", error: e, stackTrace: stackTrace, name: "PlayerScreen");
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _initializePlayer(String url) async {
-    if (_videoPlayerController != null) {
-      await _videoPlayerController!.dispose();
-      _chewieController?.dispose();
-    }
+  Future<void> _initializePlayer(String? url) async {
+    setState(() {
+      _isLoading = true;
+    });
 
-    if (url.isEmpty) return;
+    final oldChewie = _chewieController;
+    final oldVideo = _videoPlayerController;
+    
+    _chewieController = null;
+    _videoPlayerController = null;
 
     try {
-      _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(url));
-      await _videoPlayerController!.initialize();
+        if (oldChewie != null) oldChewie.dispose();
+        if (oldVideo != null) await oldVideo.dispose();
+    } catch(e) {
+        log("Erro ao limpar controladores antigos: $e");
+    }
 
-      _chewieController = ChewieController(
-        videoPlayerController: _videoPlayerController!,
+    if (url == null || url.isEmpty) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Vídeo indisponível no momento.")),
+        );
+      }
+      return;
+    }
+
+    try {
+      final newVideoController = VideoPlayerController.networkUrl(Uri.parse(url));
+      
+      await newVideoController.initialize();
+
+      final newChewieController = ChewieController(
+        videoPlayerController: newVideoController,
         autoPlay: true,
         looping: false,
         aspectRatio: 16 / 9,
         allowFullScreen: true,
+        errorBuilder: (context, errorMessage) {
+          return Center(
+            child: Text("Erro no vídeo: $errorMessage", style: const TextStyle(color: Colors.white)),
+          );
+        },
         materialProgressColors: ChewieProgressColors(
           playedColor: const Color(0xFFCB8B8B),
           handleColor: const Color(0xFFCB8B8B),
@@ -76,18 +120,24 @@ class _PlayerScreenState extends State<PlayerScreen> {
           bufferedColor: Colors.white24,
         ),
       );
-    } catch (e) {
-      print("Erro ao carregar vídeo: $e");
+
+      if (mounted) {
+        setState(() {
+          _videoPlayerController = newVideoController;
+          _chewieController = newChewieController;
+          _isLoading = false;
+        });
+      }
+
+    } catch (e, stackTrace) {
+      log("Erro ao inicializar player", error: e, stackTrace: stackTrace, name: "PlayerScreen");
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+           const SnackBar(content: Text("Não foi possível carregar este vídeo.")),
+        );
+      }
     }
-
-    setState(() => _isLoading = false);
-  }
-
-  @override
-  void dispose() {
-    _videoPlayerController?.dispose();
-    _chewieController?.dispose();
-    super.dispose();
   }
 
   @override
@@ -137,14 +187,31 @@ class _PlayerScreenState extends State<PlayerScreen> {
         children: [
           Container(
             height: 220,
+            width: double.infinity,
             color: Colors.black,
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: Color(0xFFCB8B8B)))
                 : _chewieController != null && _chewieController!.videoPlayerController.value.isInitialized
                     ? Chewie(controller: _chewieController!)
-                    : Image.network(
-                        "https://images.unsplash.com/photo-1490645935967-10de6ba17061",
-                        fit: BoxFit.cover,
+                    : Stack(
+                        alignment: Alignment.center,
+                        fit: StackFit.expand,
+                        children: [
+                          Image.network(
+                            "https://images.unsplash.com/photo-1490645935967-10de6ba17061",
+                            fit: BoxFit.cover,
+                            color: Colors.black.withOpacity(0.6),
+                            colorBlendMode: BlendMode.darken,
+                          ),
+                          const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.error_outline, color: Colors.white, size: 40),
+                              SizedBox(height: 10),
+                              Text("Vídeo não disponível", style: TextStyle(color: Colors.white)),
+                            ],
+                          )
+                        ],
                       ),
           ),
 
@@ -205,7 +272,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           children: [
             Expanded(
               child: Text(
-                currentLesson['title'],
+                currentLesson['title'] ?? 'Aula',
                 style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
               ),
             ),
@@ -268,7 +335,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           int index = entry.key;
           Map lesson = entry.value;
           bool isCurrent = index == _currentLessonIndex;
-          bool isLocked = lesson['is_locked'] == 1;
+          bool isLocked = lesson['is_locked'] == 1; 
           bool isCompleted = lesson['is_completed'] == 1;
 
           return Container(
@@ -282,6 +349,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               onTap: isLocked
                   ? null
                   : () {
+                      if (isCurrent) return; 
                       setState(() => _currentLessonIndex = index);
                       _initializePlayer(lesson['video_url']);
                     },

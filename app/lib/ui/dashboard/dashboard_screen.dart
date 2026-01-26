@@ -1,3 +1,4 @@
+import 'dart:developer';
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../library/library_screen.dart';
@@ -40,7 +41,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _fetchDashboardData() async {
     try {
       final apiClient = ApiClient();
-      final response = await apiClient.dio.get('get_dashboard.php');
+      final response = await apiClient.dio.get('get_dashboard.php?user_id=1');
       
       if (mounted) {
         setState(() {
@@ -48,8 +49,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _isLoading = false;
         });
       }
-    } catch (e) {
-      print("Erro Dashboard: $e");
+    } catch (e, stackTrace) {
+      log("Erro Dashboard", error: e, stackTrace: stackTrace, name: "DashboardScreen");
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -95,7 +96,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() => _selectedIndex = index);
     
     switch (index) {
-      case 0: break; 
+      case 0: break;
       case 1:
         Navigator.push(context, MaterialPageRoute(builder: (context) => const PlaceholderScreen(title: "Plano Alimentar")));
         break;
@@ -118,11 +119,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator(color: Color(0xFFCB8B8B))));
     }
 
-    final dailyTip = _data?['daily_tip'] ?? 'Carregando...';
+    final dailyTip = _data?['daily_tip'] ?? 'Carregando dicas...';
     final weightLost = _data?['weight_lost'] ?? 0;
     final List events = _data?['next_events'] ?? [];
     final bool hasNotif = _data?['has_notifications'] ?? false;
     final bool hasMsg = _data?['has_messages'] ?? false;
+    
+    final bool isCristiana = ApiClient.userName == 'Cristiana';
 
     return Scaffold(
       backgroundColor: const Color(0xFFFDFDFD),
@@ -149,10 +152,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Comunidade em breve!")));
                       }),
                       _buildTopIcon(Icons.notifications, hasNotif, () {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Minhas Notificações")));
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sem novas notificações")));
                       }),
                       _buildTopIcon(Icons.comment, hasMsg, () {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mensagens da Nutri")));
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sem mensagens novas")));
                       }),
                     ],
                   )
@@ -188,6 +191,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ],
                       ),
                     ),
+                    
                     Positioned(
                       right: 0, bottom: 0, 
                       child: ClipRRect(
@@ -257,6 +261,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                   const SizedBox(width: 16),
+                  
                   Expanded(
                     flex: 6,
                     child: Container(
@@ -267,6 +272,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           const Text("Próximos eventos:", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                           const SizedBox(height: 10),
+                          if (events.isEmpty) const Text("Sem eventos.", style: TextStyle(color: Colors.grey, fontSize: 12)),
                           ...events.map((evt) {
                             final title = evt['title'].toString();
                             final isSpecialItem = title.startsWith('+');
@@ -321,13 +327,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
           BottomNavigationBarItem(
             icon: Container(
               width: 26, height: 26,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                image: DecorationImage(
-                  image: AssetImage('assets/profile.png'), 
-                  fit: BoxFit.cover,
-                ),
+                color: isCristiana ? null : Colors.grey[300], 
+                image: isCristiana 
+                  ? const DecorationImage(
+                      image: AssetImage('assets/profile.png'), 
+                      fit: BoxFit.cover,
+                    )
+                  : null,
               ),
+              child: !isCristiana 
+                  ? const Icon(Icons.person, size: 18, color: Colors.grey) 
+                  : null,
             ),
             label: 'Perfil',
           ),

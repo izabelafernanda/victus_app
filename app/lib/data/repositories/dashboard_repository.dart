@@ -1,4 +1,4 @@
-import 'package:dio/dio.dart';
+import 'dart:developer'; 
 import '../../core/api_client.dart'; 
 import '../models/dashboard_model.dart';
 
@@ -13,8 +13,15 @@ class DashboardRepository {
         return DashboardData.fromJson(response.data);
       }
       return null;
-    } catch (e) {
-      print("Erro ao buscar dashboard: $e");
+    } catch (e, stackTrace) { 
+      
+      log(
+        'Erro ao buscar dados do dashboard',
+        name: 'DashboardRepository',
+        error: e,
+        stackTrace: stackTrace,
+      );
+      
       return null;
     }
   }
