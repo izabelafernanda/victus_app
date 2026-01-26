@@ -5,15 +5,42 @@ O projeto foca na experiência do utilizador, autenticação segura e consumo di
 
 ---
 
-## 🎯 O Desafio (Requisitos)
+## ⚙️ Instruções de Setup (Passo a Passo)
 
-O objetivo deste projeto foi desenvolver uma aplicação Full-Stack funcional que cobrisse os seguintes requisitos fundamentais:
+### 1. Configuração do Backend (API & Base de Dados)
 
-1.  **Backend (API):** Criar uma API REST em PHP (sem frameworks) para gerir utilizadores e conteúdos.
-2.  **Autenticação:** Implementar Login e Registo persistentes.
-3.  **Dashboard:** Criar um ecrã principal que consuma dados do utilizador (Peso, Dicas, Eventos).
-4.  **Biblioteca:** Listar cursos/treinos vindos da base de dados.
-5.  **Player:** Implementar uma interface de reprodução de vídeo para as aulas.
+1.  Certifique-se de ter um servidor local (ex: **XAMPP**, MAMP ou Docker) com PHP e MySQL.
+2.  Coloque a pasta do projeto dentro do diretório público do servidor (ex: `C:\xampp\htdocs\victus_app`).
+3.  Inicie o **Apache** e o **MySQL**.
+4.  Aceda ao seu gestor de base de dados (ex: phpMyAdmin):
+    * Crie uma base de dados chamada: `victus_db`
+    * Importe o ficheiro SQL localizado em: `/api/db/schema.sql` (contém a estrutura e dados iniciais).
+5.  Configure as credenciais de conexão em `/api/config/database.php` se necessário (Padrão configurado: root/sem senha).
+
+### 2. Configuração do Frontend (App)
+
+1.  Certifique-se de ter o **Flutter SDK** instalado e configurado.
+2.  Abra o terminal na pasta `/app`.
+3.  Instale as dependências:
+    ```bash
+    flutter pub get
+    ```
+4.  Execute a aplicação:
+    ```bash
+    flutter run
+    ```
+    *Nota: Se utilizar o emulador Android, verifique o `baseUrl` em `lib/core/api_client.dart` (padrão configurado para web/local: localhost).*
+
+---
+
+## 🧪 Credenciais de Teste
+
+Para testar rapidamente sem criar conta:
+
+* **Email:** `cristiana@victus.pt`
+* **Password:** `123456`
+
+*(Também pode utilizar a opção "Criar nova conta" na tela de login para gerar um novo utilizador).*
 
 ---
 
@@ -23,10 +50,10 @@ Um dos focos principais deste projeto foi a fidelidade ao Design System proposto
 
 | Tela | Design Proposto (Figma) | Resultado Final (App) |
 | :---: | :---: | :---: |
-| **Login** | ![Figma Login](assets/screenshots/figma_login.png) | ![App Login](assets/screenshots/app_login.png) |
-| **Dashboard** | ![Figma Dashboard](assets/screenshots/figma_dash.png) | ![App Dashboard](assets/screenshots/app_dash.png) |
-| **Biblioteca** | ![Figma Biblioteca](assets/screenshots/figma_lib.png) | ![App Biblioteca](assets/screenshots/app_lib.png) |
-| **Player** | ![Figma Player](assets/screenshots/figma_player.png) | ![App Player](assets/screenshots/app_player.png) |
+| **Login** | ![Figma Login](app/assets/screenshots/figma_login.png) | ![App Login](app/assets/screenshots/app_login.png) |
+| **Dashboard** | ![Figma Dashboard](app/assets/screenshots/figma_dash.png) | ![App Dashboard](app/assets/screenshots/app_dash.png) |
+| **Biblioteca** | ![Figma Biblioteca](app/assets/screenshots/figma_lib.png) | ![App Biblioteca](app/assets/screenshots/app_lib.png) |
+| **Player** | ![Figma Player](app/assets/screenshots/figma_player.png) | ![App Player](app/assets/screenshots/app_player.png) |
 
 *(Nota: As imagens da direita representam a aplicação a correr em tempo real, consumindo dados da API)*
 
@@ -83,6 +110,18 @@ A tela com maior complexidade de interação do utilizador:
 
 ---
 
+## 🎯 O Desafio (Requisitos)
+
+O objetivo deste projeto foi desenvolver uma aplicação Full-Stack funcional que cobrisse os seguintes requisitos fundamentais:
+
+1.  **Backend (API):** Criar uma API REST em PHP (sem frameworks) para gerir utilizadores e conteúdos.
+2.  **Autenticação:** Implementar Login e Registo persistentes.
+3.  **Dashboard:** Criar um ecrã principal que consuma dados do utilizador (Peso, Dicas, Eventos).
+4.  **Biblioteca:** Listar cursos/treinos vindos da base de dados.
+5.  **Player:** Implementar uma interface de reprodução de vídeo para as aulas.
+
+---
+
 ## 📂 Estrutura do Projeto
 
 A solução está organizada em dois diretórios principais, separando claramente as responsabilidades entre frontend e backend:
@@ -128,44 +167,6 @@ victus_app/
 
 ---
 
-## ⚙️ Instruções de Setup (Passo a Passo)
-
-### 1. Configuração do Backend (API & Base de Dados)
-
-1.  Certifique-se de ter um servidor local (ex: **XAMPP**, MAMP ou Docker) com PHP e MySQL.
-2.  Coloque a pasta do projeto dentro do diretório público do servidor (ex: `C:\xampp\htdocs\victus_app`).
-3.  Inicie o **Apache** e o **MySQL**.
-4.  Aceda ao seu gestor de base de dados (ex: phpMyAdmin):
-    * Crie uma base de dados chamada: `victus_db`
-    * Importe o ficheiro SQL localizado em: `/api/db/schema.sql` (contém a estrutura e dados iniciais).
-5.  Configure as credenciais de conexão em `/api/config/database.php` se necessário (Padrão configurado: root/sem senha).
-
-### 2. Configuração do Frontend (App)
-
-1.  Certifique-se de ter o **Flutter SDK** instalado e configurado.
-2.  Abra o terminal na pasta `/app`.
-3.  Instale as dependências:
-    ```bash
-    flutter pub get
-    ```
-4.  Execute a aplicação:
-    ```bash
-    flutter run
-    ```
-    *Nota: Se utilizar o emulador Android, verifique o `baseUrl` em `lib/core/api_client.dart` (padrão configurado para web/local: localhost).*
-
----
-
-## 🧪 Credenciais de Teste
-
-Para testar rapidamente sem criar conta:
-
-* **Email:** `cristiana@victus.pt`
-* **Password:** `123456`
-
-*(Também pode utilizar a opção "Criar nova conta" na tela de login para gerar um novo utilizador).*
-
----
 
 ## 🏗️ Decisões de Arquitetura & Notas Técnicas
 
@@ -193,7 +194,7 @@ Com o objetivo de evoluir o projeto para um ambiente de produção em larga esca
 
 O diagrama abaixo ilustra a comunicação entre a aplicação Flutter, a API em PHP e a Base de Dados, bem como as regras de negócio implementadas (validações e lógica de avatar).
 
-![Fluxograma da Arquitetura](assets/screenshots/diagrama_arquitetura.png)
+![Fluxograma da Arquitetura](app/assets/screenshots/diagrama_arquitetura.png)
 
 ---
 
