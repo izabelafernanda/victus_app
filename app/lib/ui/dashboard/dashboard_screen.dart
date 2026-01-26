@@ -122,8 +122,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final dailyTip = _data?['daily_tip'] ?? 'Carregando dicas...';
     final weightLost = _data?['weight_lost'] ?? 0;
     final List events = _data?['next_events'] ?? [];
-    final bool hasNotif = _data?['has_notifications'] ?? false;
-    final bool hasMsg = _data?['has_messages'] ?? false;
     
     final bool isCristiana = ApiClient.userName == 'Cristiana';
 
@@ -149,13 +147,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Row(
                     children: [
                       _buildTopIcon(Icons.groups, false, () {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Comunidade em breve!")));
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("A comunidade abre dia 15!")));
                       }),
-                      _buildTopIcon(Icons.notifications, hasNotif, () {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sem novas notificações")));
+                      
+                      _buildTopIcon(Icons.notifications, true, () {
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text("Notificações"),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                ListTile(
+                                  leading: Icon(Icons.check_circle, color: Colors.green),
+                                  title: Text("Parabéns!"),
+                                  subtitle: Text("Completaste a meta de água de ontem."),
+                                ),
+                                ListTile(
+                                  leading: Icon(Icons.video_library, color: Color(0xFFCB8B8B)),
+                                  title: Text("Nova Aula"),
+                                  subtitle: Text("A aula 'Planeamento' já está disponível."),
+                                ),
+                              ],
+                            ),
+                            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Fechar"))],
+                          ),
+                        );
                       }),
-                      _buildTopIcon(Icons.comment, hasMsg, () {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sem mensagens novas")));
+
+                      _buildTopIcon(Icons.comment, true, () {
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text("Mensagens"),
+                            content: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: Colors.grey[300],
+                                child: const Icon(Icons.person, color: Colors.grey),
+                              ),
+                              title: const Text("Nutricionista"),
+                              subtitle: const Text("Olá! Como te sentiste com o plano desta semana?"),
+                            ),
+                            actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Responder"))],
+                          ),
+                        );
                       }),
                     ],
                   )

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
+import '../dashboard/dashboard_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -9,15 +10,38 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
-  bool _isObscure = true;
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _register() async {
+    FocusScope.of(context).unfocus();
+
     if (_nameController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Preenche todos os campos')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, preenche todos os campos')),
+      );
+      return;
+    }
+
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(_emailController.text.trim())) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Insere um email válido (ex: nome@email.com)'),
+          backgroundColor: Colors.orange,
+        ),
+      );
       return;
     }
 
@@ -26,25 +50,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final apiClient = ApiClient();
       final response = await apiClient.dio.post('auth_register.php', data: {
-        "name": _nameController.text.trim(),
+        "name": _nameController.text,
         "email": _emailController.text.trim(),
-        "password": _passwordController.text.trim(),
+        "password": _passwordController.text
       });
 
-      if (response.statusCode == 201 || (response.statusCode == 200 && response.data['status'] == 'success')) {
+      if (response.statusCode == 201) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Conta criada! Faz login agora.'), backgroundColor: Colors.green),
+        
+        await apiClient.login(_emailController.text.trim(), _passwordController.text);
+
+        if (!mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardScreen()),
+          (route) => false,
         );
-        Navigator.pop(context); 
-      } else {
-        throw Exception(response.data['message'] ?? 'Erro ao criar conta');
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Erro: ${e.toString().replaceAll('Exception:', '')}"), backgroundColor: Colors.red),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erro ao registar: $e")),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -54,88 +82,69 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFFFFF0F0),
+        title: const Text("Criar nova conta"),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFFFFF0F0), Colors.white, Colors.white],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 20),
-                const Text("Criar nova conta", textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87)),
-                const SizedBox(height: 40),
-                
-                const Text("Nome Completo", style: TextStyle(fontSize: 14, color: Colors.black87)),
-                const SizedBox(height: 8),
-                _buildTextField(_nameController, "O teu nome", false),
-                const SizedBox(height: 20),
-
-                const Text("Email", style: TextStyle(fontSize: 14, color: Colors.black87)),
-                const SizedBox(height: 8),
-                _buildTextField(_emailController, "exemploemail@gmail.com", false),
-                const SizedBox(height: 20),
-
-                const Text("Palavra-passe", style: TextStyle(fontSize: 14, color: Colors.black87)),
-                const SizedBox(height: 8),
-                _buildTextField(_passwordController, "Cria uma senha segura", true),
-                
-                const SizedBox(height: 40),
-                
-                SizedBox(
-                  height: 54,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _register,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE6B7B7), 
-                      foregroundColor: Colors.white, 
-                      elevation: 0, 
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))
-                    ),
-                    child: _isLoading 
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) 
-                      : const Text("Criar Conta", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  ),
-                ),
-              ],
+      backgroundColor: Colors.white,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text("Nome Completo"),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _nameController,
+              decoration: InputDecoration(
+                hintText: "O teu nome",
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
             ),
-          ),
+            const SizedBox(height: 20),
+            const Text("Email"),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                hintText: "exemplo@email.com",
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text("Palavra-passe"),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _passwordController,
+              obscureText: _obscurePassword,
+              decoration: InputDecoration(
+                hintText: "Cria uma senha segura",
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                suffixIcon: IconButton(
+                  icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ),
+            ),
+            const SizedBox(height: 30),
+            SizedBox(
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _register,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFCB8B8B),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: _isLoading
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : const Text("Criar Conta"),
+              ),
+            ),
+          ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildTextField(TextEditingController controller, String hint, bool isPassword) {
-    return TextField(
-      controller: controller,
-      obscureText: isPassword ? _isObscure : false,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey.shade300)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFCB8B8B))),
-        suffixIcon: isPassword 
-          ? IconButton(
-              icon: Icon(_isObscure ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: Colors.grey),
-              onPressed: () => setState(() => _isObscure = !_isObscure),
-            )
-          : null,
       ),
     );
   }
