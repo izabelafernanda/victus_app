@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../core/api_client.dart';
 import '../../data/models/library_model.dart';
 import '../../data/repositories/library_repository.dart';
+import '../../core/api_client.dart'; 
 import '../player/player_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 
@@ -122,6 +122,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isCristiana = ApiClient.userName == 'Cristiana';
+
     return Scaffold(
       backgroundColor: const Color(0xFFFDFDFD),
       appBar: AppBar(
@@ -157,13 +159,23 @@ class _LibraryScreenState extends State<LibraryScreen> {
             label: '',
           ),
           const BottomNavigationBarItem(icon: Icon(Icons.play_circle_outline), label: 'Biblioteca'),
+          
           BottomNavigationBarItem(
             icon: Container(
               width: 26, height: 26,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                image: DecorationImage(image: AssetImage('assets/profile.png'), fit: BoxFit.cover),
+                color: isCristiana ? null : Colors.grey[300], 
+                image: isCristiana
+                  ? const DecorationImage(
+                      image: AssetImage('assets/profile.png'), 
+                      fit: BoxFit.cover
+                    )
+                  : null,
               ),
+              child: !isCristiana
+                  ? const Icon(Icons.person, size: 18, color: Colors.grey) 
+                  : null,
             ),
             label: 'Perfil',
           ),

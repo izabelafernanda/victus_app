@@ -1,4 +1,4 @@
-import 'package:dio/dio.dart';
+import 'dart:developer'; 
 import '../../core/api_client.dart';
 import '../models/library_model.dart';
 
@@ -15,8 +15,15 @@ class LibraryRepository {
             .toList();
       }
       return [];
-    } catch (e) {
-      print("Erro Biblioteca: $e");
+    } catch (e, stackTrace) { 
+      
+      log(
+        'Falha ao carregar itens da biblioteca', 
+        name: 'LibraryRepository', 
+        error: e, 
+        stackTrace: stackTrace
+      );
+      
       return [];
     }
   }
