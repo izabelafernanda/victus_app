@@ -19,6 +19,8 @@ O projeto foca na experiência do utilizador, autenticação segura e consumo di
 
 ### 2. Configuração do Frontend (App)
 
+⚠️ Nota de Ambiente (Windows vs. macOS): Este projeto foi desenvolvido e testado num ambiente Windows. Se estiver a executar o projeto em macOS ou a utilizar o iOS Simulator, poderá ser necessário realizar ajustes adicionais
+
 1.  Certifique-se de ter o **Flutter SDK** instalado e configurado.
 2.  Abra o terminal na pasta `/app`.
 3.  Instale as dependências:
