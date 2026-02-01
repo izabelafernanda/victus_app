@@ -117,10 +117,11 @@ class _LoginScreenState extends State<LoginScreen> {
           if (token != null) {
             ApiClient.authToken = token;
           }
-          if (data['user'] != null && data['user']['name'] != null) {
+          if (data['user'] != null) {
             ApiClient.userName = data['user']['name'];
+            ApiClient.userAvatarUrl = data['user']['avatar_url'];
             log("👤 Utilizador: ${ApiClient.userName}", name: 'LoginScreen');
-}
+          }
           if (!mounted) return;
           Navigator.pushReplacement(
             context,

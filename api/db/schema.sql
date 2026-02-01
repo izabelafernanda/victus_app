@@ -149,10 +149,10 @@ CREATE TABLE `lessons` (
 --
 
 INSERT INTO `lessons` (`id`, `library_item_id`, `title`, `description`, `video_url`, `duration_minutes`, `is_locked`, `is_completed`) VALUES
-(1, 1, 'Bem-vindas', 'Nesta aula vamos aprender os conceitos fundamentais para iniciar a tua jornada.', 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', 5, 0, 1),
-(2, 1, 'Guias Alimentares', 'Aqui vamos aprofundar as estratégias para manter a consistência a longo prazo.', '', 12, 0, 1),
-(3, 1, 'Alimentação Saudável', 'Os pilares de uma vida saudável.', '', 20, 1, 0),
-(4, 1, 'Emagrecimento', 'Estratégias avançadas para perda de peso.', '', 15, 1, 0),
+(1, 1, 'Bem-vindas', 'Nesta aula vamos aprender os conceitos fundamentais para iniciar a tua jornada.', 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', 5, 0, 0),
+(2, 1, 'Guias Alimentares', 'Aqui vamos aprofundar as estratégias para manter a consistência a longo prazo.', 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4', 12, 0, 0),
+(3, 1, 'Alimentação Saudável', 'Os pilares de uma vida saudável.', 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4', 20, 0, 0),
+(4, 1, 'Emagrecimento', 'Estratégias avançadas para perda de peso.', 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4', 15, 0, 0),
 (5, 1, 'Planeamento Alimentar', 'Como organizar a tua semana alimentar.', '', 30, 1, 0);
 
 -- --------------------------------------------------------
@@ -228,6 +228,37 @@ INSERT INTO `users` (`id`, `name`, `email`, `password`, `avatar_url`, `weight_lo
 (1, 'Cristiana', 'cristiana@victus.pt', '$2y$10$PjRrBkQvc5zDn2qz0bonKO3QUW6Cn1/YKe8HYq1wKBod/DJTlc94S', 'https://i.pravatar.cc/300', 2.00, '2026-01-22 15:00:33'),
 (3, 'Silvia', 'silvia@gmail.com', '$2y$10$OeulOO4/FcaR42f25.fOeu9pkB3iHGCb/I3JBLvkw/xj0IpIGNuUq', NULL, 0.00, '2026-01-26 20:17:49');
 
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `user_favorites`
+-- Favoritos (coração) por utilizador e aula
+--
+
+CREATE TABLE `user_favorites` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `lesson_id` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estrutura para tabela `user_lesson_progress`
+-- Progresso (segundos) e conclusão por utilizador e aula
+--
+
+CREATE TABLE `user_lesson_progress` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `lesson_id` int(11) NOT NULL,
+  `progress_seconds` int(11) NOT NULL DEFAULT 0,
+  `completed_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  UNIQUE KEY `user_lesson` (`user_id`,`lesson_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 --
 -- Índices para tabelas despejadas
 --
@@ -290,6 +321,23 @@ ALTER TABLE `users`
   ADD UNIQUE KEY `email` (`email`);
 
 --
+-- Índices de tabela `user_favorites`
+--
+ALTER TABLE `user_favorites`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `user_lesson_fav` (`user_id`,`lesson_id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `lesson_id` (`lesson_id`);
+
+--
+-- Índices de tabela `user_lesson_progress`
+--
+ALTER TABLE `user_lesson_progress`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `lesson_id` (`lesson_id`);
+
+--
 -- AUTO_INCREMENT para tabelas despejadas
 --
 
@@ -348,6 +396,18 @@ ALTER TABLE `users`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
+-- AUTO_INCREMENT de tabela `user_favorites`
+--
+ALTER TABLE `user_favorites`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de tabela `user_lesson_progress`
+--
+ALTER TABLE `user_lesson_progress`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- Restrições para tabelas despejadas
 --
 
@@ -362,6 +422,20 @@ ALTER TABLE `lessons`
 --
 ALTER TABLE `modules`
   ADD CONSTRAINT `modules_ibfk_1` FOREIGN KEY (`course_id`) REFERENCES `courses` (`id`) ON DELETE CASCADE;
+
+--
+-- Restrições para tabelas `user_favorites`
+--
+ALTER TABLE `user_favorites`
+  ADD CONSTRAINT `user_favorites_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `user_favorites_ibfk_2` FOREIGN KEY (`lesson_id`) REFERENCES `lessons` (`id`) ON DELETE CASCADE;
+
+--
+-- Restrições para tabelas `user_lesson_progress`
+--
+ALTER TABLE `user_lesson_progress`
+  ADD CONSTRAINT `user_lesson_progress_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `user_lesson_progress_ibfk_2` FOREIGN KEY (`lesson_id`) REFERENCES `lessons` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

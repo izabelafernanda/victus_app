@@ -25,11 +25,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
   bool _isRated = false;
   bool _isFavorited = false;
   bool _isCompleted = false;
+  VoidCallback? _videoListener;
+  int _lastSavedProgressSeconds = -1;
+  bool _hasTriggeredEndForCurrent = false;
 
   @override
   void initState() {
     super.initState();
     _loadCourseContent();
+  }
+
+  void _syncCurrentLessonState() {
+    if (_lessons.isEmpty || _currentLessonIndex >= _lessons.length) return;
+    final lesson = _lessons[_currentLessonIndex];
+    setState(() {
+      _isFavorited = lesson['is_favorited'] == 1;
+      _isCompleted = lesson['is_completed'] == 1;
+    });
   }
 
   @override
@@ -55,9 +67,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
         if (mounted) {
           setState(() {
             _lessons = lessonsData;
+            _currentLessonIndex = 0;
           });
-          if (_lessons[0]['video_url'] != null) {
+          _syncCurrentLessonState();
+          if (_lessons[0]['video_url'] != null && (_lessons[0]['video_url'] as String).isNotEmpty) {
             _initializePlayer(_lessons[0]['video_url']);
+          } else {
+            setState(() => _isLoading = false);
           }
         }
       } else {
@@ -76,10 +92,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
     final oldChewie = _chewieController;
     final oldVideo = _videoPlayerController;
-    
     _chewieController = null;
     _videoPlayerController = null;
-
+    if (oldVideo != null && _videoListener != null) {
+      try { oldVideo.removeListener(_videoListener!); } catch (_) {}
+      _videoListener = null;
+    }
     try {
         if (oldChewie != null) oldChewie.dispose();
         if (oldVideo != null) await oldVideo.dispose();
@@ -120,6 +138,43 @@ class _PlayerScreenState extends State<PlayerScreen> {
           bufferedColor: Colors.white24,
         ),
       );
+
+      _hasTriggeredEndForCurrent = false;
+      _lastSavedProgressSeconds = -1;
+      void onVideoUpdate() {
+        if (!mounted || _currentLessonIndex >= _lessons.length) return;
+        final pos = newVideoController.value.position;
+        final dur = newVideoController.value.duration;
+        final posSec = pos.inSeconds;
+        final durSec = dur.inSeconds;
+        if (durSec > 0 && posSec >= durSec - 1 && !_hasTriggeredEndForCurrent) {
+          _hasTriggeredEndForCurrent = true;
+          final lessonId = _lessons[_currentLessonIndex]['id'] as int;
+          ApiClient().updateLessonProgress(lessonId, durSec, completed: true).then((_) {
+            if (!mounted) return;
+            setState(() {
+              _lessons[_currentLessonIndex]['is_completed'] = 1;
+              _isCompleted = true;
+            });
+            final nextIndex = _currentLessonIndex + 1;
+            if (nextIndex < _lessons.length) {
+              final nextLesson = _lessons[nextIndex];
+              final nextUrl = nextLesson['video_url'] as String?;
+              if (nextUrl != null && nextUrl.isNotEmpty) {
+                setState(() => _currentLessonIndex = nextIndex);
+                _syncCurrentLessonState();
+                _initializePlayer(nextUrl);
+              }
+            }
+          });
+        } else if (durSec > 0 && posSec - _lastSavedProgressSeconds >= 15) {
+          _lastSavedProgressSeconds = posSec;
+          final lessonId = _lessons[_currentLessonIndex]['id'] as int;
+          ApiClient().updateLessonProgress(lessonId, posSec, completed: false);
+        }
+      }
+      _videoListener = onVideoUpdate;
+      newVideoController.addListener(_videoListener!);
 
       if (mounted) {
         setState(() {
@@ -263,6 +318,44 @@ class _PlayerScreenState extends State<PlayerScreen> {
     );
   }
 
+  Widget _buildNextLessonCard() {
+    final nextIndex = _currentLessonIndex + 1;
+    if (nextIndex >= _lessons.length) return const SizedBox.shrink();
+    final nextLesson = _lessons[nextIndex];
+    final isLocked = nextLesson['is_locked'] == 1;
+    final title = nextLesson['title'] ?? 'Próxima aula';
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[900],
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: InkWell(
+        onTap: isLocked
+            ? null
+            : () {
+                setState(() => _currentLessonIndex = nextIndex);
+                _syncCurrentLessonState();
+                _initializePlayer(nextLesson['video_url']);
+              },
+        borderRadius: BorderRadius.circular(30),
+        child: Row(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Próxima aula", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                Text(title, style: TextStyle(color: isLocked ? Colors.grey : Colors.white, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const Spacer(),
+            Icon(Icons.play_circle_fill, color: isLocked ? Colors.grey : const Color(0xFFD4AF37), size: 30),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildLessonsTab(Map currentLesson) {
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -289,13 +382,35 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   isActive: _isFavorited,
                   activeIcon: Icons.favorite,
                   inactiveIcon: Icons.favorite_border,
-                  onTap: () => setState(() => _isFavorited = !_isFavorited),
+                  onTap: () async {
+                    if (_currentLessonIndex >= _lessons.length) return;
+                    final lessonId = _lessons[_currentLessonIndex]['id'] as int;
+                    final res = await ApiClient().toggleFavorite(lessonId);
+                    if (res != null && res['success'] == true && mounted) {
+                      setState(() {
+                        _isFavorited = res['is_favorited'] == true;
+                        _lessons[_currentLessonIndex]['is_favorited'] = _isFavorited ? 1 : 0;
+                      });
+                    }
+                  },
                 ),
                 _buildDynamicIconButton(
                   isActive: _isCompleted,
                   activeIcon: Icons.check_circle,
                   inactiveIcon: Icons.check_circle_outline,
-                  onTap: () => setState(() => _isCompleted = !_isCompleted),
+                  onTap: () async {
+                    if (_currentLessonIndex >= _lessons.length) return;
+                    final lessonId = _lessons[_currentLessonIndex]['id'] as int;
+                    final pos = _videoPlayerController?.value.position.inSeconds ?? 0;
+                    final newCompleted = !_isCompleted;
+                    final res = await ApiClient().updateLessonProgress(lessonId, pos, completed: newCompleted);
+                    if (res != null && res['success'] == true && mounted) {
+                      setState(() {
+                        _isCompleted = newCompleted;
+                        _lessons[_currentLessonIndex]['is_completed'] = newCompleted ? 1 : 0;
+                      });
+                    }
+                  },
                 ),
               ],
             )
@@ -309,26 +424,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         ),
         const SizedBox(height: 20),
 
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.grey[900],
-            borderRadius: BorderRadius.circular(30),
-          ),
-          child: const Row(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Próxima aula", style: TextStyle(color: Colors.grey, fontSize: 12)),
-                  Text("Métodos e princípios", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ],
-              ),
-              Spacer(),
-              Icon(Icons.play_circle_fill, color: Color(0xFFD4AF37), size: 30),
-            ],
-          ),
-        ),
+        _buildNextLessonCard(),
         const SizedBox(height: 20),
 
         ..._lessons.asMap().entries.map((entry) {
@@ -351,6 +447,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   : () {
                       if (isCurrent) return; 
                       setState(() => _currentLessonIndex = index);
+                      _syncCurrentLessonState();
                       _initializePlayer(lesson['video_url']);
                     },
               leading: isLocked

@@ -122,7 +122,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isCristiana = ApiClient.userName == 'Cristiana';
+    final bool hasAvatarFromDb = ApiClient.userAvatarUrl != null && ApiClient.userAvatarUrl!.trim().isNotEmpty;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFDFDFD),
@@ -161,21 +161,24 @@ class _LibraryScreenState extends State<LibraryScreen> {
           const BottomNavigationBarItem(icon: Icon(Icons.play_circle_outline), label: 'Biblioteca'),
           
           BottomNavigationBarItem(
-            icon: Container(
-              width: 26, height: 26,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isCristiana ? null : Colors.grey[300], 
-                image: isCristiana
-                  ? const DecorationImage(
-                      image: AssetImage('assets/profile.png'), 
-                      fit: BoxFit.cover
+            icon: ClipOval(
+              child: SizedBox(
+                width: 26,
+                height: 26,
+                child: hasAvatarFromDb
+                  ? Image.network(
+                      ApiClient.userAvatarUrl!,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (_, child, progress) => progress == null
+                          ? child
+                          : Image.asset('assets/profile.png', fit: BoxFit.cover),
+                      errorBuilder: (_, __, ___) => Image.asset(
+                        'assets/profile.png',
+                        fit: BoxFit.cover,
+                      ),
                     )
-                  : null,
+                  : Image.asset('assets/profile.png', fit: BoxFit.cover),
               ),
-              child: !isCristiana
-                  ? const Icon(Icons.person, size: 18, color: Colors.grey) 
-                  : null,
             ),
             label: 'Perfil',
           ),

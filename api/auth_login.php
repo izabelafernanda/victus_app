@@ -11,6 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 
 include_once './config/database.php';
 include_once './models/User.php';
+include_once './utils/jwt_helper.php';
 
 try {
     $database = new Database();
@@ -33,7 +34,7 @@ try {
             $hash_no_banco = $row['password'];
 
             if(password_verify($senha_recebida, $hash_no_banco)){
-                $token = bin2hex(random_bytes(16));
+                $token = JWT_Helper::create(['user_id' => (int)$row['id']]);
                 http_response_code(200);
                 echo json_encode(array(
                     "status" => "success",
