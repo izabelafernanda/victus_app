@@ -55,6 +55,64 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  static const List<Map<String, String>> _staticEvents = [
+    {'date': '23/05', 'title': 'Masterclass'},
+    {'date': '12/08', 'title': 'Workshop'},
+    {'date': '20/09', 'title': 'Webinar Nutrição'},
+    {'date': '15/10', 'title': 'Encontro Presencial'},
+  ];
+
+  void _showEventsPopup() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: const Color(0xFFF8F0F0),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                "Próximos eventos",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+              ),
+              const SizedBox(height: 16),
+              ..._staticEvents.map((evt) => Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_today, size: 18, color: const Color(0xFFCB8B8B)),
+                    const SizedBox(width: 10),
+                    Text(evt['date']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    const SizedBox(width: 8),
+                    Container(width: 1, height: 14, color: Colors.grey[300]),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(evt['title']!, style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                  ],
+                ),
+              )),
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text("Fechar", style: TextStyle(color: Color(0xFFCB8B8B), fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showAddOptions() {
     showModalBottomSheet(
       context: context,
@@ -312,7 +370,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             final title = evt['title'].toString();
                             final isSpecialItem = title.startsWith('+');
                             
-                            return Container(
+                            final content = Container(
                               margin: const EdgeInsets.only(bottom: 8),
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)),
@@ -332,6 +390,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ],
                                   ),
                             );
+                            if (isSpecialItem) {
+                              return GestureDetector(
+                                onTap: _showEventsPopup,
+                                child: content,
+                              );
+                            }
+                            return content;
                           }),
                         ],
                       ),
