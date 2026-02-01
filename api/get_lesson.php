@@ -1,20 +1,30 @@
 <?php
+// Configurações CORS
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
+header("Access-Control-Allow-Methods: GET, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-include_once 'config/database.php';
+if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
 
-$database = new Database();
-$db = $database->getConnection();
+include_once 'controllers/LibraryController.php';
 
-$course_id = isset($_GET['course_id']) ? $_GET['course_id'] : die();
+$course_id = isset($_GET['course_id']) ? $_GET['course_id'] : null;
 
-$query = "SELECT title, description, video_url, duration_minutes FROM lessons WHERE library_item_id = ? LIMIT 1";
-$stmt = $db->prepare($query);
-$stmt->bindParam(1, $course_id);
-$stmt->execute();
+try {
+    if (!$course_id) {
+        echo json_encode([]);
+        exit();
+    }
 
-$lesson = $stmt->fetch(PDO::FETCH_ASSOC);
-
-echo json_encode($lesson ? $lesson : []); 
+    $controller = new LibraryController();
+    $data = $controller->getLessonDetail($course_id);
+    echo json_encode($data);
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode(["message" => "Erro ao carregar a lição.", "error" => $e->getMessage()]);
+}
 ?>

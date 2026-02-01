@@ -2,7 +2,7 @@
 // Configurações CORS
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: GET, OPTIONS");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
@@ -10,16 +10,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     exit();
 }
 
-include_once 'controllers/LibraryController.php';
+include_once 'controllers/AuthController.php';
 
-$course_id = isset($_GET['course_id']) ? $_GET['course_id'] : 1;
+$data = json_decode(file_get_contents("php://input"));
 
 try {
-    $controller = new LibraryController();
-    $data = $controller->getCourseLessons($course_id);
-    echo json_encode($data);
+    $auth = new AuthController();
+    $response = $auth->login($data);
+    echo json_encode($response);
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(["message" => "Erro ao carregar lições.", "error" => $e->getMessage()]);
+    echo json_encode(["message" => "Erro no servidor: " . $e->getMessage()]);
 }
 ?>

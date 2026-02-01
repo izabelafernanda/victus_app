@@ -1,34 +1,26 @@
 <?php
-// Configurações de Erro (0 para produção)
-ini_set('display_errors', 0);
-error_reporting(0);
-
-// Cabeçalhos CORS (Essenciais para o Flutter Web)
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
 header("Access-Control-Allow-Methods: GET, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
-// Responder OK ao pré-pedido do navegador
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
     http_response_code(200);
     exit();
 }
 
-include_once 'controllers/LibraryController.php';
+// CORREÇÃO: Caminho direto, sem sair da pasta
+include_once __DIR__ . '/controllers/DashboardController.php';
 
 try {
-    $controller = new LibraryController();
-    $data = $controller->getContent();
+    $controller = new DashboardController();
+    $data = $controller->getDashboardData();
 
     http_response_code(200);
     echo json_encode($data);
 
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode([
-        "message" => "Erro ao carregar a biblioteca.",
-        "error" => $e->getMessage()
-    ]);
+    echo json_encode(["message" => "Erro: " . $e->getMessage()]);
 }
 ?>

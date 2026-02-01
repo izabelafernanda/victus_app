@@ -3,18 +3,20 @@ class User {
     private $conn;
     private $table_name = "users";
 
+    // 1. ADICIONAR AS PROPRIEDADES QUE FALTAVAM
     public $id;
     public $name;
     public $email;
     public $password;
-    public $avatar_url;
-    public $weight_lost;
     public $created_at;
+    public $avatar_url;  // <--- Faltava ou não estava a ser preenchido
+    public $weight_lost; // <--- Faltava ou não estava a ser preenchido
 
     public function __construct($db) {
         $this->conn = $db;
     }
 
+    // Criar conta
     public function create() {
         $query = "INSERT INTO " . $this->table_name . "
                 SET
@@ -41,14 +43,15 @@ class User {
         return false;
     }
 
-    public function login() {
+    // Verificar se email existe (E CARREGAR DADOS)
+    public function emailExists() {
+        // 2. ATUALIZAR A QUERY PARA TRAZER OS NOVOS CAMPOS
         $query = "SELECT id, name, password, avatar_url, weight_lost
                 FROM " . $this->table_name . "
                 WHERE email = ?
                 LIMIT 0,1";
 
         $stmt = $this->conn->prepare($query);
-        
         $this->email = htmlspecialchars(strip_tags($this->email));
         $stmt->bindParam(1, $this->email);
         $stmt->execute();
@@ -56,35 +59,13 @@ class User {
         if($stmt->rowCount() > 0) {
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
             
-            if(password_verify($this->password, $row['password'])) {
-                $this->id = $row['id'];
-                $this->name = $row['name'];
-                $this->avatar_url = $row['avatar_url'];
-                $this->weight_lost = $row['weight_lost'];
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public function emailExists() {
-        $query = "SELECT id, name, password, avatar_url, weight_lost
-                FROM " . $this->table_name . "
-                WHERE email = ?
-                LIMIT 0,1";
-
-        $stmt = $this->conn->prepare($query);
-        $this->email = htmlspecialchars(strip_tags($this->email));
-        $stmt->bindParam(1, $this->email);
-        $stmt->execute();
-
-        if($stmt->rowCount() > 0) {
-            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            // 3. PREENCHER AS PROPRIEDADES DO OBJETO
             $this->id = $row['id'];
             $this->name = $row['name'];
             $this->password = $row['password'];
-            $this->avatar_url = $row['avatar_url'];
-            $this->weight_lost = $row['weight_lost'];
+            $this->avatar_url = $row['avatar_url']; // Agora já existe
+            $this->weight_lost = $row['weight_lost']; // Agora já existe
+            
             return true;
         }
         return false;
