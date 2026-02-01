@@ -65,6 +65,28 @@ class ApiClient {
     return null;
   }
 
+  /// Atualiza o nome do utilizador. Retorna { success, name?, message? }.
+  Future<Map<String, dynamic>> updateUserName(String name) async {
+    try {
+      final response = await dio.post('update_profile.php', data: {'name': name});
+      final data = response.data is Map
+          ? Map<String, dynamic>.from(response.data)
+          : <String, dynamic>{};
+      if (response.statusCode == 200 && (data['success'] == true || data['success'] == 1)) {
+        if (data['name'] != null) userName = data['name'] as String;
+        return {'success': true, 'name': data['name']};
+      }
+      return {'success': false, 'message': data['message'] ?? 'Erro ao atualizar.'};
+    } on DioException catch (e) {
+      final msg = e.response?.data is Map
+          ? (e.response!.data as Map)['message']?.toString()
+          : null;
+      return {'success': false, 'message': msg ?? e.message ?? 'Não foi possível atualizar. Verifica a ligação.'};
+    } catch (e) {
+      return {'success': false, 'message': 'Erro inesperado. Tenta novamente.'};
+    }
+  }
+
   /// Atualiza progresso e/ou conclusão da aula. Retorna { success, progress_seconds, completed } ou null em erro.
   Future<Map<String, dynamic>?> updateLessonProgress(int lessonId, int progressSeconds, {bool completed = false}) async {
     try {

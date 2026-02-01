@@ -4,6 +4,7 @@ import '../../data/repositories/library_repository.dart';
 import '../../core/api_client.dart'; 
 import '../player/player_screen.dart';
 import '../dashboard/dashboard_screen.dart';
+import '../profile/perfil_screen.dart';
 
 class PlaceholderScreen extends StatelessWidget {
   final String title;
@@ -92,7 +93,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       case 3: 
         break;
       case 4: 
-        Navigator.push(context, MaterialPageRoute(builder: (context) => const PlaceholderScreen(title: "Meu Perfil")));
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const PerfilScreen()));
         break;
     }
   }

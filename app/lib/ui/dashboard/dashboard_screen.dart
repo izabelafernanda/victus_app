@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../library/library_screen.dart';
+import '../profile/perfil_screen.dart';
 
 class PlaceholderScreen extends StatelessWidget {
   final String title;
@@ -166,7 +167,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Navigator.push(context, MaterialPageRoute(builder: (context) => const LibraryScreen()));
         break;
       case 4:
-        Navigator.push(context, MaterialPageRoute(builder: (context) => const PlaceholderScreen(title: "Meu Perfil")));
+        Navigator.push(context, MaterialPageRoute(builder: (context) => const PerfilScreen()));
         break;
     }
   }
