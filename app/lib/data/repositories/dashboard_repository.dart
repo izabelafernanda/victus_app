@@ -1,28 +1,24 @@
-import 'dart:developer'; 
-import '../../core/api_client.dart'; 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/api_client.dart'; // Import corrigido
 import '../models/dashboard_model.dart';
 
-class DashboardRepository {
-  final ApiClient _apiClient = ApiClient();
+final dashboardRepositoryProvider = Provider((ref) => DashboardRepository());
 
-  Future<DashboardData?> getDashboardData() async {
+class DashboardRepository {
+  final ApiClient _client = ApiClient();
+
+  Future<DashboardModel> getDashboardData() async {
     try {
-      final response = await _apiClient.dio.get('get_dashboard.php?user_id=1');
+      final response = await _client.dio.get('dashboard.php'); // Usa o endpoint novo
 
       if (response.statusCode == 200) {
-        return DashboardData.fromJson(response.data);
+        return DashboardModel.fromJson(response.data);
+      } else {
+        throw Exception("Falha ao carregar dashboard");
       }
-      return null;
-    } catch (e, stackTrace) { 
-      
-      log(
-        'Erro ao buscar dados do dashboard',
-        name: 'DashboardRepository',
-        error: e,
-        stackTrace: stackTrace,
-      );
-      
-      return null;
+    } catch (e) {
+      throw Exception("Erro: $e");
     }
   }
 }

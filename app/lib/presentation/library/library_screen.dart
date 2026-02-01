@@ -5,6 +5,7 @@ import '../../core/api_client.dart';
 import '../player/player_screen.dart';
 import '../dashboard/dashboard_screen.dart';
 
+// --- Placeholder para telas em construção ---
 class PlaceholderScreen extends StatelessWidget {
   final String title;
   const PlaceholderScreen({super.key, required this.title});
@@ -26,8 +27,10 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   final LibraryRepository _repository = LibraryRepository();
+  
   List<LibraryItem> _items = [];
   bool _isLoading = true;
+  
   int _selectedIndex = 3;
   int? _hoveredIndex;
 
@@ -39,22 +42,33 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   Future<void> _loadData() async {
     try {
-      final items = await _repository.getLibraryItems();
+      final List<dynamic> jsonList = await _repository.getLibraryItems();
       
+      final List<LibraryItem> convertedList = jsonList.map((json) {
+        return LibraryItem(
+          id: int.tryParse(json['id'].toString()) ?? 0,
+          title: json['title'] ?? 'Sem Título',
+          description: json['description'] ?? '',
+          imageUrl: json['image_url'] ?? '', 
+          progress: int.tryParse(json['progress'].toString()) ?? 0,
+        );
+      }).toList();
+
       if (mounted) {
         setState(() {
-          if (items.isEmpty) {
-            _items = _getFakeItems();
+          if (convertedList.isEmpty) {
+            _items = _getFakeItems(); 
           } else {
-            _items = items;
+            _items = convertedList;   
           }
           _isLoading = false;
         });
       }
     } catch (e) {
+      print("Erro ao carregar library: $e");
       if (mounted) {
         setState(() {
-          _items = _getFakeItems();
+          _items = _getFakeItems(); 
           _isLoading = false;
         });
       }
@@ -185,7 +199,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Widget _buildLibraryCard(LibraryItem item, int index) {
-    final isUnlocked = index == 0; 
+    // ID 1 desbloqueado (podes mudar a lógica aqui se quiseres desbloquear todos para teste)
+    final isUnlocked = item.id == 1; 
+    
     final isHovering = _hoveredIndex == index;
 
     return MouseRegion(
@@ -193,13 +209,24 @@ class _LibraryScreenState extends State<LibraryScreen> {
       onExit: (_) => setState(() => _hoveredIndex = null),
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () {
+        // --- AQUI ESTÁ A ALTERAÇÃO IMPORTANTE ---
+        onTap: () async {
           if (isUnlocked) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => PlayerScreen(courseId: item.id)));
+            // 1. Navega para o player e ESPERA (await) ele voltar
+            await Navigator.push(
+              context, 
+              MaterialPageRoute(builder: (context) => PlayerScreen(courseId: item.id))
+            );
+
+            // 2. Quando voltar, recarrega os dados para atualizar a barra de progresso
+            if (mounted) {
+              _loadData();
+            }
           } else {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Disponível em breve!"), duration: Duration(milliseconds: 800)));
           }
         },
+        // ----------------------------------------
         child: Container(
           height: 110, 
           decoration: BoxDecoration(
@@ -228,6 +255,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         children: [
                           Text(item.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
                           const SizedBox(height: 6),
+                          // Exibe barra de progresso se > 0
                           if (isUnlocked && item.progress > 0) ...[
                             Row(
                               children: [

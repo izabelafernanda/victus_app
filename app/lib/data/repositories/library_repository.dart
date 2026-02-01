@@ -1,30 +1,45 @@
-import 'dart:developer'; 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api_client.dart';
-import '../models/library_model.dart';
+
+// --- ESTA LINHA É OBRIGATÓRIA PARA O ERRO DESAPARECER ---
+final libraryRepositoryProvider = Provider((ref) => LibraryRepository());
 
 class LibraryRepository {
-  final ApiClient _apiClient = ApiClient();
+  final ApiClient _client = ApiClient();
 
-  Future<List<LibraryItem>> getLibraryItems() async {
+  Future<List<dynamic>> getLibraryItems() async {
     try {
-      final response = await _apiClient.dio.get('get_library.php');
+      // Ajuste para a rota correta do teu backend
+      final response = await _client.dio.get('get_library.php');
+      return response.data;
+    } catch (e) {
+      throw Exception("Erro ao carregar biblioteca.");
+    }
+  }
 
-      if (response.statusCode == 200) {
-        return (response.data as List)
-            .map((item) => LibraryItem.fromJson(item))
-            .toList();
+  Future<List<dynamic>> getCourseLessons(int courseId) async {
+    try {
+      final response = await _client.dio.get('get_course_content.php', queryParameters: {
+        'course_id': courseId
+      });
+      return response.data;
+    } catch (e) {
+      throw Exception("Erro ao carregar aulas.");
+    }
+  }
+
+  Future<Map<String, dynamic>> getLesson(int courseId) async {
+    try {
+      final response = await _client.dio.get('get_lesson.php', queryParameters: {
+        'course_id': courseId
+      });
+      
+      if (response.data is List && (response.data as List).isEmpty) {
+        return {}; 
       }
-      return [];
-    } catch (e, stackTrace) { 
-      
-      log(
-        'Falha ao carregar itens da biblioteca', 
-        name: 'LibraryRepository', 
-        error: e, 
-        stackTrace: stackTrace
-      );
-      
-      return [];
+      return response.data; 
+    } catch (e) {
+      throw Exception("Erro ao carregar vídeo.");
     }
   }
 }

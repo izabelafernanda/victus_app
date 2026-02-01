@@ -1,80 +1,62 @@
-class DashboardData {
-  final DashboardUser user;
-  final List<BannerItem> banners;
-  final ReminderItem? reminder;
-  final List<EventItem> events;
+import 'event_model.dart';
 
-  DashboardData({
-    required this.user,
-    required this.banners,
-    this.reminder,
+class DashboardModel {
+  final DailyTip? dailyTip;
+  final DailyQuote? dailyQuote;
+  final double weightLost;
+  // Agora usa o EventModel independente
+  final List<EventModel> events; 
+
+  DashboardModel({
+    this.dailyTip,
+    this.dailyQuote,
+    required this.weightLost,
     required this.events,
   });
 
-  factory DashboardData.fromJson(Map<String, dynamic> json) {
-    return DashboardData(
-      user: DashboardUser.fromJson(json['user']),
-      banners: (json['banners'] as List).map((i) => BannerItem.fromJson(i)).toList(),
-      reminder: json['reminder'] != null ? ReminderItem.fromJson(json['reminder']) : null,
-      events: (json['events'] as List).map((i) => EventItem.fromJson(i)).toList(),
-    );  
-  }
-}
-
-class DashboardUser {
-  final String name;
-  final double weightLost;
-
-  DashboardUser({required this.name, required this.weightLost});
-
-  factory DashboardUser.fromJson(Map<String, dynamic> json) {
-    return DashboardUser(
-      name: json['name'] ?? '',
+  factory DashboardModel.fromJson(Map<String, dynamic> json) {
+    return DashboardModel(
+      dailyTip: json['daily_tip'] != null ? DailyTip.fromJson(json['daily_tip']) : null,
+      dailyQuote: json['daily_quote'] != null ? DailyQuote.fromJson(json['daily_quote']) : null,
       weightLost: (json['weight_lost'] ?? 0).toDouble(),
+      
+      // Mapeia usando a classe externa
+      events: (json['events'] as List?)
+              ?.map((i) => EventModel.fromJson(i))
+              .toList() ?? 
+              [],
     );
   }
 }
 
-class BannerItem {
-  final String title;
-  final String subtitle;
-  final String imageUrl;
+// --- Classes menores exclusivas do Dashboard podem ficar aqui ---
 
-  BannerItem({required this.title, required this.subtitle, required this.imageUrl});
+class DailyTip {
+  final String? title;
+  final String message;
+  final String backgroundColor;
 
-  factory BannerItem.fromJson(Map<String, dynamic> json) {
-    return BannerItem(
-      title: json['title'] ?? '',
-      subtitle: json['subtitle'] ?? '',
-      imageUrl: json['image_url'] ?? '',
+  DailyTip({this.title, required this.message, required this.backgroundColor});
+
+  factory DailyTip.fromJson(Map<String, dynamic> json) {
+    return DailyTip(
+      title: json['title'],
+      message: json['message'] ?? '',
+      backgroundColor: json['background_color'] ?? '0xFFF8E8E8',
     );
   }
 }
 
-class ReminderItem {
-  final String title;
+class DailyQuote {
   final String message;
 
-  ReminderItem({required this.title, required this.message});
+  DailyQuote({required this.message});
 
-  factory ReminderItem.fromJson(Map<String, dynamic> json) {
-    return ReminderItem(
-      title: json['title'] ?? '',
+  factory DailyQuote.fromJson(Map<String, dynamic> json) {
+    return DailyQuote(
       message: json['message'] ?? '',
     );
   }
 }
 
-class EventItem {
-  final String title;
-  final String dateFormatted;
-
-  EventItem({required this.title, required this.dateFormatted});
-
-  factory EventItem.fromJson(Map<String, dynamic> json) {
-    return EventItem(
-      title: json['title'] ?? '',
-      dateFormatted: json['date_formatted'] ?? '',
-    );
-  }
-}
+// --- APAGUEI A CLASSE 'EventItem' DAQUI POIS JÁ EXISTE NO event_model.dart ---
