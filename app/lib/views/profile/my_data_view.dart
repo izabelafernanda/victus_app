@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
+import '../../controllers/profile_controller.dart';
 
-class MyDataScreen extends StatefulWidget {
-  const MyDataScreen({super.key});
+class MyDataView extends StatefulWidget {
+  const MyDataView({super.key});
 
   @override
-  State<MyDataScreen> createState() => _MyDataScreenState();
+  State<MyDataView> createState() => _MyDataViewState();
 }
 
-class _MyDataScreenState extends State<MyDataScreen> {
-  String _currentName = '';
+class _MyDataViewState extends State<MyDataView> {
+  final ProfileController _profileController = ProfileController();
+  late String _currentName;
   bool _showSuccessBanner = false;
 
   @override
@@ -28,17 +30,11 @@ class _MyDataScreenState extends State<MyDataScreen> {
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(
-            labelText: "Nome",
-            border: OutlineInputBorder(),
-          ),
+          decoration: const InputDecoration(labelText: "Nome", border: OutlineInputBorder()),
           onSubmitted: (value) => Navigator.pop(context, value.trim().isEmpty ? null : value.trim()),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancelar", style: TextStyle(color: Colors.grey)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancelar", style: TextStyle(color: Colors.grey))),
           TextButton(
             onPressed: () {
               final name = controller.text.trim();
@@ -50,8 +46,10 @@ class _MyDataScreenState extends State<MyDataScreen> {
       ),
     );
     if (result == null || result.isEmpty) return;
-    final res = await ApiClient().updateUserName(result);
+
+    final res = await _profileController.updateUserName(result);
     if (!mounted) return;
+
     if (res['success'] == true && mounted) {
       setState(() {
         _currentName = result;
@@ -62,9 +60,7 @@ class _MyDataScreenState extends State<MyDataScreen> {
       });
     } else {
       final msg = res['message']?.toString() ?? "Não foi possível atualizar o nome. Tenta novamente.";
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating));
     }
   }
 
@@ -75,14 +71,8 @@ class _MyDataScreenState extends State<MyDataScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          "Os meus dados",
-          style: TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.bold),
-        ),
+        leading: IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.black87, size: 20), onPressed: () => Navigator.pop(context)),
+        title: const Text("Os meus dados", style: TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.bold)),
         centerTitle: true,
       ),
       body: Stack(
@@ -92,9 +82,7 @@ class _MyDataScreenState extends State<MyDataScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Center(
-                  child: _buildAvatar(radius: 50),
-                ),
+                Center(child: _buildAvatar(radius: 50)),
                 const SizedBox(height: 24),
                 _buildDataRow(label: "Nome", value: _currentName, onTap: _editName),
               ],
@@ -113,18 +101,9 @@ class _MyDataScreenState extends State<MyDataScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   child: Row(
                     children: [
-                      const CircleAvatar(
-                        backgroundColor: Colors.white,
-                        radius: 16,
-                        child: Icon(Icons.check, color: Color(0xFFCB8B8B), size: 22),
-                      ),
+                      const CircleAvatar(backgroundColor: Colors.white, radius: 16, child: Icon(Icons.check, color: Color(0xFFCB8B8B), size: 22)),
                       const SizedBox(width: 12),
-                      const Expanded(
-                        child: Text(
-                          "Nome atualizado",
-                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
-                        ),
-                      ),
+                      const Expanded(child: Text("Nome atualizado", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15))),
                     ],
                   ),
                 ),
@@ -144,29 +123,17 @@ class _MyDataScreenState extends State<MyDataScreen> {
           width: radius * 2,
           height: radius * 2,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
-            width: radius * 2,
-            height: radius * 2,
-            color: Colors.grey[300],
-            child: Icon(Icons.person, size: radius * 1.2, color: Colors.grey),
-          ),
+          errorBuilder: (_, __, ___) => Container(width: radius * 2, height: radius * 2, color: Colors.grey[300], child: Icon(Icons.person, size: radius * 1.2, color: Colors.grey)),
         ),
       );
     }
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: Colors.grey[300],
-      child: Icon(Icons.person, size: radius * 1.2, color: Colors.grey),
-    );
+    return CircleAvatar(radius: radius, backgroundColor: Colors.grey[300], child: Icon(Icons.person, size: radius * 1.2, color: Colors.grey));
   }
 
   Widget _buildDataRow({required String label, required String value, VoidCallback? onTap}) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         title: Row(
           children: [

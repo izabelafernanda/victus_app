@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'ui/auth/login_screen.dart';
+import 'views/auth/login_view.dart';
 
 void main() {
   runApp(const MyApp());
@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: const LoginScreen(),
+      home: const LoginView(),
     );
   }
 }

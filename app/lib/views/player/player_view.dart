@@ -3,24 +3,26 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import '../../core/api_client.dart';
+import '../../controllers/lesson_controller.dart';
 
-class PlayerScreen extends StatefulWidget {
+class PlayerView extends StatefulWidget {
   final int courseId;
 
-  const PlayerScreen({super.key, required this.courseId});
+  const PlayerView({super.key, required this.courseId});
 
   @override
-  State<PlayerScreen> createState() => _PlayerScreenState();
+  State<PlayerView> createState() => _PlayerViewState();
 }
 
-class _PlayerScreenState extends State<PlayerScreen> {
+class _PlayerViewState extends State<PlayerView> {
+  final LessonController _lessonController = LessonController();
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
-  
+
   bool _isLoading = true;
   List<dynamic> _lessons = [];
   int _currentLessonIndex = 0;
-  int _selectedTabIndex = 0; 
+  int _selectedTabIndex = 0;
 
   bool _isRated = false;
   bool _isFavorited = false;
@@ -53,71 +55,58 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Future<void> _loadCourseContent() async {
     try {
-      final apiClient = ApiClient();
-      final response = await apiClient.dio.get('get_course_content.php?course_id=${widget.courseId}');
+      final lessonsData = await _lessonController.getCourseContent(widget.courseId);
 
-      List<dynamic> lessonsData = [];
-      if (response.data is List) {
-        lessonsData = response.data;
-      } else if (response.data is Map && response.data['data'] is List) {
-        lessonsData = response.data['data'];
-      }
-
-      if (response.statusCode == 200 && lessonsData.isNotEmpty) {
-        if (mounted) {
-          setState(() {
-            _lessons = lessonsData;
-            _currentLessonIndex = 0;
-          });
-          _syncCurrentLessonState();
-          if (_lessons[0]['video_url'] != null && (_lessons[0]['video_url'] as String).isNotEmpty) {
-            _initializePlayer(_lessons[0]['video_url']);
-          } else {
-            setState(() => _isLoading = false);
-          }
+      if (lessonsData.isNotEmpty && mounted) {
+        setState(() {
+          _lessons = lessonsData;
+          _currentLessonIndex = 0;
+        });
+        _syncCurrentLessonState();
+        if (_lessons[0]['video_url'] != null && (_lessons[0]['video_url'] as String).isNotEmpty) {
+          _initializePlayer(_lessons[0]['video_url']);
+        } else {
+          setState(() => _isLoading = false);
         }
       } else {
         if (mounted) setState(() => _isLoading = false);
       }
     } catch (e, stackTrace) {
-      log("Erro Player", error: e, stackTrace: stackTrace, name: "PlayerScreen");
+      log("Erro Player", error: e, stackTrace: stackTrace, name: "PlayerView");
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _initializePlayer(String? url) async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     final oldChewie = _chewieController;
     final oldVideo = _videoPlayerController;
     _chewieController = null;
     _videoPlayerController = null;
     if (oldVideo != null && _videoListener != null) {
-      try { oldVideo.removeListener(_videoListener!); } catch (_) {}
+      try {
+        oldVideo.removeListener(_videoListener!);
+      } catch (_) {}
       _videoListener = null;
     }
     try {
-        if (oldChewie != null) oldChewie.dispose();
-        if (oldVideo != null) await oldVideo.dispose();
-    } catch(e) {
-        log("Erro ao limpar controladores antigos: $e");
+      if (oldChewie != null) oldChewie.dispose();
+      if (oldVideo != null) await oldVideo.dispose();
+    } catch (e) {
+      log("Erro ao limpar controladores antigos: $e");
     }
 
     if (url == null || url.isEmpty) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Vídeo indisponível no momento.")),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vídeo indisponível no momento.")));
       }
       return;
     }
 
     try {
       final newVideoController = VideoPlayerController.networkUrl(Uri.parse(url));
-      
       await newVideoController.initialize();
 
       final newChewieController = ChewieController(
@@ -126,11 +115,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         looping: false,
         aspectRatio: 16 / 9,
         allowFullScreen: true,
-        errorBuilder: (context, errorMessage) {
-          return Center(
-            child: Text("Erro no vídeo: $errorMessage", style: const TextStyle(color: Colors.white)),
-          );
-        },
+        errorBuilder: (context, errorMessage) => Center(child: Text("Erro no vídeo: $errorMessage", style: const TextStyle(color: Colors.white))),
         materialProgressColors: ChewieProgressColors(
           playedColor: const Color(0xFFCB8B8B),
           handleColor: const Color(0xFFCB8B8B),
@@ -150,7 +135,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         if (durSec > 0 && posSec >= durSec - 1 && !_hasTriggeredEndForCurrent) {
           _hasTriggeredEndForCurrent = true;
           final lessonId = _lessons[_currentLessonIndex]['id'] as int;
-          ApiClient().updateLessonProgress(lessonId, durSec, completed: true).then((_) {
+          _lessonController.updateProgress(lessonId, durSec, completed: true).then((_) {
             if (!mounted) return;
             setState(() {
               _lessons[_currentLessonIndex]['is_completed'] = 1;
@@ -170,7 +155,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         } else if (durSec > 0 && posSec - _lastSavedProgressSeconds >= 15) {
           _lastSavedProgressSeconds = posSec;
           final lessonId = _lessons[_currentLessonIndex]['id'] as int;
-          ApiClient().updateLessonProgress(lessonId, posSec, completed: false);
+          _lessonController.updateProgress(lessonId, posSec, completed: false);
         }
       }
       _videoListener = onVideoUpdate;
@@ -183,14 +168,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
           _isLoading = false;
         });
       }
-
     } catch (e, stackTrace) {
-      log("Erro ao inicializar player", error: e, stackTrace: stackTrace, name: "PlayerScreen");
+      log("Erro ao inicializar player", error: e, stackTrace: stackTrace, name: "PlayerView");
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(content: Text("Não foi possível carregar este vídeo.")),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Não foi possível carregar este vídeo.")));
       }
     }
   }
@@ -201,32 +183,24 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-
       appBar: AppBar(
         backgroundColor: Colors.black,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
+        leading: IconButton(icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20), onPressed: () => Navigator.pop(context)),
         title: Column(
           children: [
-            const Text(
-              "Liberdade Alimentar",
-              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-            ),
+            const Text("Liberdade Alimentar", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 100, height: 4,
+                  width: 100,
+                  height: 4,
                   decoration: BoxDecoration(color: Colors.grey[800], borderRadius: BorderRadius.circular(2)),
                   child: FractionallySizedBox(
                     alignment: Alignment.centerLeft,
                     widthFactor: 0.8,
-                    child: Container(
-                      decoration: BoxDecoration(color: const Color(0xFFCB8B8B), borderRadius: BorderRadius.circular(2)),
-                    ),
+                    child: Container(decoration: BoxDecoration(color: const Color(0xFFCB8B8B), borderRadius: BorderRadius.circular(2))),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -237,7 +211,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
         ),
         centerTitle: true,
       ),
-
       body: Column(
         children: [
           Container(
@@ -269,7 +242,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         ],
                       ),
           ),
-
           Expanded(
             child: currentLesson == null
                 ? const Center(child: Text("Sem aulas", style: TextStyle(color: Colors.white)))
@@ -277,7 +249,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
           ),
         ],
       ),
-
       bottomNavigationBar: Container(
         padding: const EdgeInsets.symmetric(vertical: 10),
         color: Colors.white,
@@ -310,12 +281,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Widget _buildPlaceholder(String text) {
-    return Center(
-      child: Text(
-        text,
-        style: TextStyle(color: Colors.grey[400], fontSize: 16),
-      ),
-    );
+    return Center(child: Text(text, style: TextStyle(color: Colors.grey[400], fontSize: 16)));
   }
 
   Widget _buildNextLessonCard() {
@@ -326,10 +292,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final title = nextLesson['title'] ?? 'Próxima aula';
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[900],
-        borderRadius: BorderRadius.circular(30),
-      ),
+      decoration: BoxDecoration(color: Colors.grey[900], borderRadius: BorderRadius.circular(30)),
       child: InkWell(
         onTap: isLocked
             ? null
@@ -364,10 +327,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Text(
-                currentLesson['title'] ?? 'Aula',
-                style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-              ),
+              child: Text(currentLesson['title'] ?? 'Aula', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
             ),
             Row(
               mainAxisSize: MainAxisSize.min,
@@ -385,7 +345,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   onTap: () async {
                     if (_currentLessonIndex >= _lessons.length) return;
                     final lessonId = _lessons[_currentLessonIndex]['id'] as int;
-                    final res = await ApiClient().toggleFavorite(lessonId);
+                    final res = await _lessonController.toggleFavorite(lessonId);
                     if (res != null && res['success'] == true && mounted) {
                       setState(() {
                         _isFavorited = res['is_favorited'] == true;
@@ -403,7 +363,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                     final lessonId = _lessons[_currentLessonIndex]['id'] as int;
                     final pos = _videoPlayerController?.value.position.inSeconds ?? 0;
                     final newCompleted = !_isCompleted;
-                    final res = await ApiClient().updateLessonProgress(lessonId, pos, completed: newCompleted);
+                    final res = await _lessonController.updateProgress(lessonId, pos, completed: newCompleted);
                     if (res != null && res['success'] == true && mounted) {
                       setState(() {
                         _isCompleted = newCompleted;
@@ -417,21 +377,15 @@ class _PlayerScreenState extends State<PlayerScreen> {
           ],
         ),
         const SizedBox(height: 10),
-
-        Text(
-          currentLesson['description'] ?? "",
-          style: TextStyle(color: Colors.grey[400], fontSize: 14),
-        ),
+        Text(currentLesson['description'] ?? "", style: TextStyle(color: Colors.grey[400], fontSize: 14)),
         const SizedBox(height: 20),
-
         _buildNextLessonCard(),
         const SizedBox(height: 20),
-
         ..._lessons.asMap().entries.map((entry) {
           int index = entry.key;
           Map lesson = entry.value;
           bool isCurrent = index == _currentLessonIndex;
-          bool isLocked = lesson['is_locked'] == 1; 
+          bool isLocked = lesson['is_locked'] == 1;
           bool isCompleted = lesson['is_completed'] == 1;
 
           return Container(
@@ -445,7 +399,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
               onTap: isLocked
                   ? null
                   : () {
-                      if (isCurrent) return; 
+                      if (isCurrent) return;
                       setState(() => _currentLessonIndex = index);
                       _syncCurrentLessonState();
                       _initializePlayer(lesson['video_url']);
@@ -457,10 +411,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                       : Icon(Icons.play_circle_outline, color: isCurrent ? Colors.white : Colors.grey),
               title: Text(
                 "${index + 1} | ${lesson['title']}",
-                style: TextStyle(
-                  color: isCurrent || !isLocked ? Colors.white : Colors.grey,
-                  fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                ),
+                style: TextStyle(color: isCurrent || !isLocked ? Colors.white : Colors.grey, fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal),
               ),
               trailing: const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
             ),
@@ -477,42 +428,24 @@ class _PlayerScreenState extends State<PlayerScreen> {
     required VoidCallback onTap,
   }) {
     return IconButton(
-      icon: Icon(
-        isActive ? activeIcon : inactiveIcon,
-        color: isActive ? const Color(0xFFCB8B8B) : Colors.white,
-      ),
+      icon: Icon(isActive ? activeIcon : inactiveIcon, color: isActive ? const Color(0xFFCB8B8B) : Colors.white),
       onPressed: onTap,
     );
   }
 
   Widget _buildTabItem(int index, IconData icon, String label) {
-    final bool isActive = _selectedTabIndex == index;
-    
+    final isActive = _selectedTabIndex == index;
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedTabIndex = index;
-        });
-      },
+      onTap: () => setState(() => _selectedTabIndex = index),
       child: Container(
-        color: Colors.transparent, 
+        color: Colors.transparent,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              color: isActive ? const Color(0xFFCB8B8B) : Colors.grey[400],
-            ),
+            Icon(icon, color: isActive ? const Color(0xFFCB8B8B) : Colors.grey[400]),
             const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: isActive ? const Color(0xFFCB8B8B) : Colors.grey[400],
-                fontSize: 10,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              ),
-            )
+            Text(label, style: TextStyle(color: isActive ? const Color(0xFFCB8B8B) : Colors.grey[400], fontSize: 10, fontWeight: isActive ? FontWeight.bold : FontWeight.normal)),
           ],
         ),
       ),
