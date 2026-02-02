@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import '../../controllers/dashboard_controller.dart';
@@ -141,8 +142,6 @@ class _DashboardViewState extends State<DashboardView> {
     final dailyTip = _data?['daily_tip'] ?? 'Carregando dicas...';
     final weightLost = _data?['weight_lost'] ?? 0;
     final List events = _data?['next_events'] ?? [];
-    final hasAvatarFromDb = ApiClient.userAvatarUrl != null && ApiClient.userAvatarUrl!.trim().isNotEmpty;
-
     return Scaffold(
       backgroundColor: const Color(0xFFFDFDFD),
       body: SafeArea(
@@ -333,15 +332,52 @@ class _DashboardViewState extends State<DashboardView> {
               child: SizedBox(
                 width: 26,
                 height: 26,
-                child: hasAvatarFromDb
-                    ? Image.network(ApiClient.userAvatarUrl!, fit: BoxFit.cover, loadingBuilder: (_, child, progress) => progress == null ? child : Image.asset('assets/profile.png', fit: BoxFit.cover), errorBuilder: (_, __, ___) => Image.asset('assets/profile.png', fit: BoxFit.cover))
-                    : Image.asset('assets/profile.png', fit: BoxFit.cover),
+                child: _buildProfileAvatar(),
               ),
             ),
             label: 'Perfil',
           ),
         ],
       ),
+    );
+  }
+
+  static const String _profileFallback = 'assets/profile.png';
+
+  Widget _buildProfileAvatar() {
+    const size = 26.0;
+    final url = ApiClient.userAvatarUrl;
+    // Safe widget: profile.png with fallback to icon so we never show broken "X".
+    Widget profileImage = Image.asset(
+      _profileFallback,
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Container(
+        width: size,
+        height: size,
+        color: Colors.grey[300],
+        child: Icon(Icons.person, size: size * 0.6, color: Colors.grey[600]),
+      ),
+    );
+    // On web, external images often fail (CORS); only use asset so we never show X.
+    if (kIsWeb || url == null || url.trim().isEmpty) {
+      return profileImage;
+    }
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        profileImage,
+        Image.network(
+          url,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          loadingBuilder: (_, child, progress) =>
+              progress == null ? child : const SizedBox.shrink(),
+        ),
+      ],
     );
   }
 

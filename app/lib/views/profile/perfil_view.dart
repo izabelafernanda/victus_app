@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../core/api_client.dart';
 import 'my_data_view.dart';
@@ -73,24 +74,47 @@ class _PerfilViewState extends State<PerfilView> {
   }
 
   Widget _buildAvatar({required double radius}) {
+    const fallback = 'assets/profile.png';
     final url = ApiClient.userAvatarUrl;
-    if (url != null && url.isNotEmpty) {
-      return ClipOval(
-        child: Image.network(
-          url,
-          width: radius * 2,
-          height: radius * 2,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
-            width: radius * 2,
-            height: radius * 2,
-            color: Colors.grey[300],
-            child: Icon(Icons.person, size: radius * 1.2, color: Colors.grey),
-          ),
-        ),
-      );
+    final size = radius * 2;
+    // Safe widget: profile.png with fallback to icon so we never show broken "X".
+    Widget profileImage = Image.asset(
+      fallback,
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => Container(
+        width: size,
+        height: size,
+        color: Colors.grey[300],
+        child: Icon(Icons.person, size: size * 0.6, color: Colors.grey[600]),
+      ),
+    );
+    // On web, external images often fail (CORS); only use asset so we never show X.
+    if (kIsWeb || url == null || url.isEmpty) {
+      return ClipOval(child: profileImage);
     }
-    return CircleAvatar(radius: radius, backgroundColor: Colors.grey[300], child: Icon(Icons.person, size: radius * 1.2, color: Colors.grey));
+    return ClipOval(
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            profileImage,
+            Image.network(
+              url,
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              loadingBuilder: (_, child, progress) =>
+                  progress == null ? child : const SizedBox.shrink(),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildConfigTile(BuildContext context, {required IconData icon, required String label, required VoidCallback onTap}) {

@@ -18,10 +18,10 @@ class LessonController {
         $userId = get_user_id_from_request();
         $courseId = isset($_GET['course_id']) ? (int) $_GET['course_id'] : 1;
 
-        $query = "SELECT id, title, description, video_url, duration_minutes, is_locked, is_completed 
+        $query = "SELECT id, title, description, video_url, duration_minutes, is_locked, lesson_order 
                   FROM lessons 
                   WHERE library_item_id = ? 
-                  ORDER BY id ASC";
+                  ORDER BY lesson_order ASC, id ASC";
         $stmt = $this->db->prepare($query);
         $stmt->bindParam(1, $courseId);
         $stmt->execute();
@@ -50,9 +50,14 @@ class LessonController {
                 $lid = (int) $lesson['id'];
                 $lesson['is_favorited'] = in_array($lid, $favoritedIds) ? 1 : 0;
                 $lesson['progress_seconds'] = isset($progressByLesson[$lid]) ? $progressByLesson[$lid]['progress_seconds'] : 0;
-                if (isset($progressByLesson[$lid])) {
-                    $lesson['is_completed'] = $progressByLesson[$lid]['is_completed'];
-                }
+                $lesson['is_completed'] = isset($progressByLesson[$lid]) ? $progressByLesson[$lid]['is_completed'] : 0;
+            }
+            unset($lesson);
+        } else {
+            foreach ($lessons as &$lesson) {
+                $lesson['is_favorited'] = 0;
+                $lesson['progress_seconds'] = 0;
+                $lesson['is_completed'] = 0;
             }
             unset($lesson);
         }
