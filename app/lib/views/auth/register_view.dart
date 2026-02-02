@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import '../../core/api_client.dart';
-import '../dashboard/dashboard_screen.dart';
+import '../../controllers/auth_controller.dart';
+import '../dashboard/dashboard_view.dart';
 
-class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+class RegisterView extends StatefulWidget {
+  const RegisterView({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  State<RegisterView> createState() => _RegisterViewState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterViewState extends State<RegisterView> {
+  final AuthController _controller = AuthController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -37,45 +38,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
     if (!emailRegex.hasMatch(_emailController.text.trim())) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Insere um email válido (ex: nome@email.com)'),
-          backgroundColor: Colors.orange,
-        ),
+        const SnackBar(content: Text('Insere um email válido (ex: nome@email.com)'), backgroundColor: Colors.orange),
       );
       return;
     }
 
     setState(() => _isLoading = true);
 
-    try {
-      final apiClient = ApiClient();
-      final response = await apiClient.dio.post('auth_register.php', data: {
-        "name": _nameController.text,
-        "email": _emailController.text.trim(),
-        "password": _passwordController.text
-      });
+    final error = await _controller.register(
+      _nameController.text,
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
 
-      if (response.statusCode == 201) {
-        if (!mounted) return;
-        
-        await apiClient.login(_emailController.text.trim(), _passwordController.text);
+    if (!mounted) return;
 
-        if (!mounted) return;
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const DashboardScreen()),
-          (route) => false,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Erro ao registar: $e")),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+    if (error == null) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const DashboardView()),
+        (route) => false,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Erro ao registar: $error")));
     }
+
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -97,10 +85,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             const SizedBox(height: 8),
             TextField(
               controller: _nameController,
-              decoration: InputDecoration(
-                hintText: "O teu nome",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+              decoration: InputDecoration(hintText: "O teu nome", border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
             ),
             const SizedBox(height: 20),
             const Text("Email"),
@@ -108,10 +93,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             TextField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(
-                hintText: "exemplo@email.com",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+              decoration: InputDecoration(hintText: "exemplo@email.com", border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
             ),
             const SizedBox(height: 20),
             const Text("Palavra-passe"),
