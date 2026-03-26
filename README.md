@@ -202,6 +202,6 @@ O diagrama abaixo ilustra a comunicação entre a aplicação Flutter, a API em 
 
 ## 👨‍💻 Conclusão
 
-Projeto desenvolvido por **Izabela** como resposta ao desafio técnico proposto pela **Victus Clinica**.
+Projeto desenvolvido por **Izabela** para a empresa **Victus Clinica**.
 
 ---
